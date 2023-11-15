@@ -9,18 +9,42 @@ class Paddle:
 	def __init__(self, paddle_id, paddle_image):
 		self.id = paddle_id
 		self.image = paddle_image
-		self.speed = 30
+		self.speed = 60
 
 	#Moves paddle left and right with respective button press
 	def move_left(self,event):
 		if ball.fired:
-			canvas.move(paddle_id, -self.speed, 0)
+			game.move(paddle_id, -self.speed, 0)
 
 	def move_right(self,event):
 		if ball.fired:
-			canvas.move(paddle_id, self.speed, 0)
+			game.move(paddle_id, self.speed, 0)
 
+	def collision(self, ball):
+		# Note this code is very similar to the respective method for bricks, so this should be made more concise in the future
+		# Checks to see if a ball collides with paddle
+		x_ball_center, y_ball_center = game.coords(ball.id)
+		x_paddle_left, y_paddle_top, x_paddle_right, y_paddle_bottom = game.bbox(self.id)
 
+		ball_radius = (ball.image).width() / 2
+
+		if (x_paddle_left - ball_radius < x_ball_center < x_paddle_right + ball_radius) and (y_paddle_top - ball_radius < y_ball_center < y_paddle_bottom + ball_radius):
+
+			#Works out the overlap of the ball
+			x_overlap = min(x_ball_center - (x_paddle_left - ball_radius), (x_paddle_right + ball_radius) - x_ball_center)
+			y_overlap = min(y_ball_center - (y_paddle_top - ball_radius), (y_paddle_bottom + ball_radius) - y_ball_center)
+
+			#Uses overlap to work out which side of the paddle the ball collides with (should mostly be top)
+			if x_overlap < y_overlap:
+				if x_ball_center < (x_paddle_left + x_paddle_right) / 2:
+					return "left"
+				else:
+					return "right"
+			else:
+				if y_ball_center < (y_paddle_top + y_paddle_bottom) / 2:
+					return "top"
+				else:
+					return "bottom"		
 
 #Define the brick class
 class Brick:
@@ -28,17 +52,25 @@ class Brick:
 	def __init__(self, x, y, image, cracked_image):
 		self.image = image
 		self.cracked_image = cracked_image	
-		self.id = canvas.create_image(x,y, anchor="nw", image=self.image)
+		self.id = game.create_image(x,y, anchor="nw", image=self.image)
 		self.topright = [x,y]
+		self.cracked = False
 
 	def crack(self):
-		#Turns brick into cracked version
-		canvas.itemconfig(self.id, image=self.cracked_image)
+		#Turns brick into cracked version or breaks
+		if not self.cracked:
+			game.itemconfig(self.id, image=self.cracked_image)
+			self.cracked = True
+		else:
+			bricks.remove(self)
+			game.delete(self.id)
+			del self
+			
 
 	def collision(self, ball):
 		# Checks to see if a ball collides with brick
-		x_ball_center, y_ball_center = canvas.coords(ball.id)
-		x_brick_left, y_brick_top, x_brick_right, y_brick_bottom = canvas.bbox(self.id)
+		x_ball_center, y_ball_center = game.coords(ball.id)
+		x_brick_left, y_brick_top, x_brick_right, y_brick_bottom = game.bbox(self.id)
 
 		ball_radius = (ball.image).width() / 2
 
@@ -86,20 +118,13 @@ class Ball:
 		if not self.fired:
 			#Work out the vectors of the click
 
-			x_vector = canvas.coords(ball.id)[0] - x
-			y_vector = canvas.coords(ball.id)[1] - y
+			x_vector = game.coords(ball.id)[0] - x
+			y_vector = game.coords(ball.id)[1] - y
 
-			print(canvas.coords(ball.id))
-			print(f"fired at {x},{y}")
-			print(x_vector,y_vector)
 			#Set fired to True as can only fire once
 			self.fired = True
 
 			#Work out respective x and y velocities
-			
-			theta = abs(math.atan(y_vector/x_vector))
-			print(theta)
-
 			self.x_velocity = -x_vector
 			self.y_velocity = -y_vector
 
@@ -110,7 +135,7 @@ class Ball:
 
 	def move(self):
 		#Moves the ball according to the current velocities
-		canvas.move(self.id, self.x_velocity, self.y_velocity)
+		game.move(self.id, self.x_velocity, self.y_velocity)
 
 	def update_velocity(self,side):
 		#Updates the velocity of the ball depending on collisions
@@ -121,10 +146,15 @@ class Ball:
 
 	def wall_collisions(self):
 		#checks for collisions with walls and updates velocity appropriately
-		if canvas.coords(ball.id)[0] < (ball_image.width()/2 + 2) or canvas.coords(ball.id)[0] > (WIDTH - ball_image.width()/2 - 2):
+		if game.coords(ball.id)[0] < (ball_image.width()/2 + 2) or game.coords(ball.id)[0] > (WIDTH - ball_image.width()/2 - 2):
 			self.x_velocity = -self.x_velocity
-		elif canvas.coords(ball.id)[1] < (ball_image.height()/2 + 2) or canvas.coords(ball.id)[1] > (HEIGHT - ball_image.width()/2 - 2):
+		elif game.coords(ball.id)[1] < (ball_image.height()/2 + 2):
 			self.y_velocity = -self.y_velocity
+		elif game.coords(ball.id)[1] > (HEIGHT - ball_image.width()/2 - 2):
+			balls.remove(self)
+			game.delete(self.id)
+			del self
+			
 
 
 def update_game():
@@ -134,10 +164,16 @@ def update_game():
 		for brick in bricks:
 			side = brick.collision(ball)
 			if side != None:
-				print(side)
 				ball.update_velocity(side)
+				brick.crack()
 				break
 		ball.wall_collisions()
+		side = paddle.collision(ball)
+		if side != None:
+				ball.update_velocity(side)
+				break
+
+		
 
 				
 
@@ -154,21 +190,24 @@ HEIGHT=720
 window.geometry(f"{WIDTH}x{HEIGHT}")
 window.title("Classic Brick Breaker")
 
-#Create canvas on window
-canvas = Canvas(window,bg="black",width=WIDTH,height=HEIGHT)
-canvas.pack()
+#Create game canvas on window
+game = Canvas(window,bg="black",width=WIDTH,height=HEIGHT)
+game.pack()
 
 #Load paddle image and resize using PIL
+#Usable under CC license
 paddle_image = Image.open("paddle.png")
 paddle_image = paddle_image.resize((154, 41))
 paddle_image = ImageTk.PhotoImage(paddle_image)
-paddle_id = canvas.create_image(int(WIDTH/2),int(HEIGHT)-5, anchor="s", image=paddle_image)
+paddle_id = game.create_image(int(WIDTH/2),int(HEIGHT)-5, anchor="s", image=paddle_image)
 paddle = Paddle(paddle_id,paddle_image)
 
+#Load ball image and resize using PIL
+#Usable under CC license
 ball_image = Image.open("ball.png")
 ball_image = ball_image.resize((int(73/1.5), int(72//1.5)))
 ball_image = ImageTk.PhotoImage(ball_image)
-ball_id = canvas.create_image(int(WIDTH/2),int(HEIGHT-paddle_image.height()-5-(ball_image.width()/2)), anchor="center", image=ball_image)
+ball_id = game.create_image(int(WIDTH/2),int(HEIGHT-paddle_image.height()-5-(ball_image.width()/2)), anchor="center", image=ball_image)
 ball = Ball(ball_id, ball_image)
 
 balls = []
@@ -181,11 +220,13 @@ BRICK_HEIGHT = int(BRICK_WIDTH * (57 / 170))
 NUMBER_OF_ROWS = 5
 
 #Load and resize grey_brick_image
+#Usable under CC license
 grey_brick_image = Image.open("grey_brick.png")
 grey_brick_image = grey_brick_image.resize((BRICK_WIDTH, BRICK_HEIGHT))
 grey_brick_image = ImageTk.PhotoImage(grey_brick_image)
 
 #Load and resize grey_brick_cracked_image
+#Usable under CC license
 grey_brick_cracked_image = Image.open("grey_brick_cracked.png")
 grey_brick_cracked_image = grey_brick_cracked_image.resize((BRICK_WIDTH, BRICK_HEIGHT))
 grey_brick_cracked_image = ImageTk.PhotoImage(grey_brick_cracked_image)
@@ -197,9 +238,6 @@ for row in range(NUMBER_OF_ROWS):
 	for brick in range(BRICKS_PER_ROW):
 		new_brick = GreyBrick(brick*BRICK_WIDTH,row*BRICK_HEIGHT)
 		bricks.append(new_brick)
-
-
-# grey_brick_id = canvas.create_image(0,0, anchor="nw", image=grey_brick_image)
 
 #Bind left and right keys to move paddle
 window.bind("<Left>", lambda event: paddle.move_left(event))
