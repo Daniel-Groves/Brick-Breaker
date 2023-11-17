@@ -166,33 +166,35 @@ class Ball:
 
 
 def update_game():
-	#Updates the game to move the ball
-	ball.move()
 
-	#If there are no bricks or no balls left we know the game is lost or won
-	if not balls or not bricks:
-		return False
-	
-	#Code to check for collisions
-	for item in balls:
-		for brick in bricks:
-			side = brick.collision(item)
+
+	if not paused:
+		#Updates the game to move the ball
+		ball.move()
+		#If there are no bricks or no balls left we know the game is lost or won
+		if not balls or not bricks:
+			return False
+		
+		#Code to check for collisions
+		for item in balls:
+			for brick in bricks:
+				side = brick.collision(item)
+				if side != None:
+					item.update_velocity(side)
+					brick.crack()
+					ball.move()
+					break
+			item.wall_collisions(ball)
+			side = paddle.collision(item)
 			if side != None:
-				item.update_velocity(side)
-				brick.crack()
-				break
-		item.wall_collisions(ball)
-		side = paddle.collision(item)
-		if side != None:
-				item.update_velocity(side)
-				ball.move()
-				break
-	#Update score
-	game.itemconfigure(score_label,text=f"Score: {score}")
+					item.update_velocity(side)
+					ball.move()
+					break
+		#Update score
+		game.itemconfigure(score_label,text=f"Score: {score}")
 
-	# print(math.sqrt(ball.x_velocity**2 + ball.y_velocity**2))
+		# print(math.sqrt(ball.x_velocity**2 + ball.y_velocity**2))
 
-	window.after(10, update_game)
 	return True
 
 def level_one():
@@ -216,12 +218,11 @@ def level_one():
 
 
 	bricks = []
-	#Add label to display level
-	level_label = Label(game, text="Level 1", font=("Courier New", 28), bg="black")
-	level_label.pack()
-	level_label.place(x=3,y=3)
+	#Add text to display level
+	level_label = game.create_text(3, 3, text="Level 1", font=("Courier New", 28), fill="white", anchor="nw")
 
-	#Add label with score
+
+	#Add text with score
 	score_label = game.create_text(WIDTH/2, 3, text=f"Score: {score}", font=("Courier New", 28), fill="white", anchor="n")
 
 
@@ -244,7 +245,10 @@ def level_one():
 			new_brick = GreyBrick(brick*BRICK_WIDTH,(row+1)*BRICK_HEIGHT)
 			bricks.append(new_brick)
 
-	while update_game():
+	update = True
+
+	while update:
+		update = update_game()
 		game.update()
 
 	if balls:
@@ -267,6 +271,7 @@ def level_one():
 
 		
 def level_two():
+	#Start level two
 	pass
 
 def restart(game_over_label,restart_button):
@@ -277,6 +282,43 @@ def restart(game_over_label,restart_button):
 	game.update_idletasks()
 	level_one()
 
+def create_pause_menu():
+	#Place the buttons for the pause menu
+	resume_button = Button(pause_menu, text="Resume", command=unpause, font=("Courier New", 60),background="grey")
+	resume_button.place(x=WIDTH/2, y=HEIGHT/4, anchor="center")
+
+	leaderboard_button = Button(pause_menu, text="Leaderboard", command=show_leaderboard, font=("Courier New", 60),background="grey")
+	leaderboard_button.place(x=WIDTH/2, y=(2*HEIGHT)/4, anchor="center")
+
+	settings_button = Button(pause_menu, text="Settings", command=settings, font=("Courier New", 60),background="grey")
+	settings_button.place(x=WIDTH/2, y=(3*HEIGHT)/4, anchor="center")
+
+def pause(event):
+	#When called will remove the game from the window and show the pause menu
+	global paused
+
+	paused = True
+	game.pack_forget()
+	pause_menu.pack()
+	window.bind("<Escape>", unpause)
+
+def unpause(event="None"):
+	#When called will remove the pause menu from the window and show the game
+	global paused
+
+	paused = False
+	pause_menu.pack_forget()
+	game.pack()
+	window.bind("<Escape>", pause)
+	pass
+
+def show_leaderboard(event):
+	#When called will remove what is currently showing, and show the leaderboard
+	pass
+
+def settings(event):
+	#Will take user to settings page when called
+	pass
 
 #Initialise window
 window = Tk()
@@ -291,15 +333,20 @@ window.title("Classic Brick Breaker")
 #Create game canvas on window
 game = Canvas(window,bg="black",width=WIDTH,height=HEIGHT)
 game.pack()
+paused = False
+
+pause_menu = Canvas(window, bg="black", width=WIDTH,height=HEIGHT)
+create_pause_menu()
+
 
 balls = []
 
 
-BRICKS_PER_ROW = 3
+BRICKS_PER_ROW = 10
 BRICK_WIDTH = WIDTH // BRICKS_PER_ROW
 BRICK_HEIGHT = int(BRICK_WIDTH * (57 / 170))
 
-NUMBER_OF_ROWS = 1
+NUMBER_OF_ROWS = 3
 
 score = 0
 
@@ -323,6 +370,7 @@ window.bind("<Right>", lambda event: paddle.move_right(event))
 
 #Bind left click to fire the ball initially
 window.bind("<Button-1>", lambda event: ball.fire(event.x,event.y))
+window.bind("<Escape>", pause)
 
 level_one()
 
