@@ -284,13 +284,17 @@ def restart(game_over_label,restart_button):
 
 def create_pause_menu():
 	#Place the buttons for the pause menu
-	resume_button = Button(pause_menu, text="Resume", command=unpause, font=("Courier New", 60),background="grey")
+
+	button_width = 15
+	button_height = 1			
+
+	resume_button = Button(pause_menu, text="Resume", command=unpause, font=("Courier New", 60),background="grey", width=button_width, height=button_height)
 	resume_button.place(x=WIDTH/2, y=HEIGHT/4, anchor="center")
 
-	leaderboard_button = Button(pause_menu, text="Leaderboard", command=show_leaderboard, font=("Courier New", 60),background="grey")
+	leaderboard_button = Button(pause_menu, text="Leaderboard", command=show_leaderboard, font=("Courier New", 60),background="grey", width=button_width, height=button_height)
 	leaderboard_button.place(x=WIDTH/2, y=(2*HEIGHT)/4, anchor="center")
 
-	settings_button = Button(pause_menu, text="Settings", command=settings, font=("Courier New", 60),background="grey")
+	settings_button = Button(pause_menu, text="Settings", command=settings, font=("Courier New", 60),background="grey", width=button_width, height=button_height)
 	settings_button.place(x=WIDTH/2, y=(3*HEIGHT)/4, anchor="center")
 
 def pause(event):
@@ -316,9 +320,36 @@ def show_leaderboard(event):
 	#When called will remove what is currently showing, and show the leaderboard
 	pass
 
-def settings(event):
-	#Will take user to settings page when called
+def create_settings():
+	#Creates the text and buttons that sit on the settings canvas
+
+	settings_text = settings.create_text(WIDTH/2, HEIGHT/6, text="Settings", font=("Courier New", 60, "bold"), fill="white", anchor="center")
+	left_text = settings.create_text(WIDTH/3.5, (2*HEIGHT)/6, text="Move Left", font=("Courier New", 25), fill="white", anchor="w")
+	right_text = settings.create_text(WIDTH/3.5, (3*HEIGHT)/6, text="Move Right", font=("Courier New", 25), fill="white", anchor="w")
+	fire_text = settings.create_text(WIDTH/3.5, (4*HEIGHT)/6, text="Fire", font=("Courier New", 25), fill="white", anchor="w")
+	pause_text = settings.create_text(WIDTH/3.5, (5*HEIGHT)/6, text="Pause", font=("Courier New", 25), fill="white", anchor="w")
+	
+	button_width = 15
+	button_height = 3
+
+	left_button = Button(settings, text="Left Arrow", command=show_leaderboard, font=("Courier New", 25),background="grey", width=button_width, height=button_height)
+	left_button.place(x=WIDTH/2, y=(2*HEIGHT)/6, anchor="w")
+
+	right_button = Button(settings, text="Right Arrow", command=show_leaderboard, font=("Courier New", 25),background="grey", width=button_width, height=button_height)
+	right_button.place(x=WIDTH/2, y=(3*HEIGHT)/6, anchor="w")
+
+	fire_button = Button(settings, text="Left Click", command=show_leaderboard, font=("Courier New", 25),background="grey", width=button_width, height=button_height)
+	fire_button.place(x=WIDTH/2, y=(4*HEIGHT)/6, anchor="w")
+
+	pause_button = Button(settings, text="Escape", command=show_leaderboard, font=("Courier New", 25),background="grey", width=button_width, height=button_height)
+	pause_button.place(x=WIDTH/2, y=(5*HEIGHT)/6, anchor="w")
 	pass
+
+def settings():
+	#Will take user to settings page when called
+
+	pause_menu.pack_forget()
+	settings.pack()
 
 #Initialise window
 window = Tk()
@@ -337,6 +368,9 @@ paused = False
 
 pause_menu = Canvas(window, bg="black", width=WIDTH,height=HEIGHT)
 create_pause_menu()
+
+settings = Canvas(window, bg="black", width=WIDTH,height=HEIGHT)
+create_settings()
 
 
 balls = []
