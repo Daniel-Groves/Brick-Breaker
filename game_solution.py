@@ -1,4 +1,4 @@
-from tkinter import Tk, Canvas, PhotoImage
+from tkinter import Tk, Canvas, PhotoImage, Label, Button
 import math
 from PIL import Image, ImageTk
 
@@ -14,37 +14,39 @@ class Paddle:
 	#Moves paddle left and right with respective button press
 	def move_left(self,event):
 		if ball.fired:
-			game.move(paddle_id, -self.speed, 0)
+			game.move(self.id, -self.speed, 0)
 
 	def move_right(self,event):
 		if ball.fired:
-			game.move(paddle_id, self.speed, 0)
+			game.move(self.id, self.speed, 0)
 
 	def collision(self, ball):
 		# Note this code is very similar to the respective method for bricks, so this should be made more concise in the future
 		# Checks to see if a ball collides with paddle
-		x_ball_center, y_ball_center = game.coords(ball.id)
-		x_paddle_left, y_paddle_top, x_paddle_right, y_paddle_bottom = game.bbox(self.id)
 
-		ball_radius = (ball.image).width() / 2
+		#Gets ball coordinates, if the ball is still present
+		if game.coords(ball.id):
+			x_ball_center, y_ball_center = game.coords(ball.id)
+			x_paddle_left, y_paddle_top, x_paddle_right, y_paddle_bottom = game.bbox(self.id)
+			ball_radius = (ball.image).width() / 2
 
-		if (x_paddle_left - ball_radius < x_ball_center < x_paddle_right + ball_radius) and (y_paddle_top - ball_radius < y_ball_center < y_paddle_bottom + ball_radius):
+			if (x_paddle_left - ball_radius < x_ball_center < x_paddle_right + ball_radius) and (y_paddle_top - ball_radius < y_ball_center < y_paddle_bottom + ball_radius):
 
-			#Works out the overlap of the ball
-			x_overlap = min(x_ball_center - (x_paddle_left - ball_radius), (x_paddle_right + ball_radius) - x_ball_center)
-			y_overlap = min(y_ball_center - (y_paddle_top - ball_radius), (y_paddle_bottom + ball_radius) - y_ball_center)
+				#Works out the overlap of the ball
+				x_overlap = min(x_ball_center - (x_paddle_left - ball_radius), (x_paddle_right + ball_radius) - x_ball_center)
+				y_overlap = min(y_ball_center - (y_paddle_top - ball_radius), (y_paddle_bottom + ball_radius) - y_ball_center)
 
-			#Uses overlap to work out which side of the paddle the ball collides with (should mostly be top)
-			if x_overlap < y_overlap:
-				if x_ball_center < (x_paddle_left + x_paddle_right) / 2:
-					return "left"
+				#Uses overlap to work out which side of the paddle the ball collides with (should mostly be top)
+				if x_overlap < y_overlap:
+					if x_ball_center < (x_paddle_left + x_paddle_right) / 2:
+						return "left"
+					else:
+						return "right"
 				else:
-					return "right"
-			else:
-				if y_ball_center < (y_paddle_top + y_paddle_bottom) / 2:
-					return "top"
-				else:
-					return "bottom"		
+					if y_ball_center < (y_paddle_top + y_paddle_bottom) / 2:
+						return "top"
+					else:
+						return "bottom"		
 
 #Define the brick class
 class Brick:
@@ -57,11 +59,17 @@ class Brick:
 		self.cracked = False
 
 	def crack(self):
+		global score
 		#Turns brick into cracked version or breaks
 		if not self.cracked:
+			#If a brick is cracked, add 1 to score
 			game.itemconfig(self.id, image=self.cracked_image)
 			self.cracked = True
+			score += 1
+
 		else:
+			#If a brick is broken, add 2 to score
+			score += 2
 			bricks.remove(self)
 			game.delete(self.id)
 			del self
@@ -109,7 +117,7 @@ class Ball:
 	def __init__(self, ball_id, ball_image):
 		self.id = ball_id
 		self.image = ball_image
-		self.speed = 3
+		self.speed = 15
 		self.x_velocity = 0
 		self.y_velocity = 0
 		self.fired = False
@@ -144,13 +152,13 @@ class Ball:
 		else:
 			self.x_velocity = -self.x_velocity
 
-	def wall_collisions(self):
+	def wall_collisions(self, ball):
 		#checks for collisions with walls and updates velocity appropriately
-		if game.coords(ball.id)[0] < (ball_image.width()/2 + 2) or game.coords(ball.id)[0] > (WIDTH - ball_image.width()/2 - 2):
+		if game.coords(ball.id)[0] < (ball.image.width()/2 + 2) or game.coords(ball.id)[0] > (WIDTH - ball.image.width()/2 - 2):
 			self.x_velocity = -self.x_velocity
-		elif game.coords(ball.id)[1] < (ball_image.height()/2 + 2):
+		elif game.coords(ball.id)[1] < (ball.image.height()/2 + 2):
 			self.y_velocity = -self.y_velocity
-		elif game.coords(ball.id)[1] > (HEIGHT - ball_image.width()/2 - 2):
+		elif game.coords(ball.id)[1] > (HEIGHT - ball.image.width()/2 - 2):
 			balls.remove(self)
 			game.delete(self.id)
 			del self
@@ -160,25 +168,115 @@ class Ball:
 def update_game():
 	#Updates the game to move the ball
 	ball.move()
+
+	#If there are no bricks or no balls left we know the game is lost or won
+	if not balls or not bricks:
+		return False
+	
+	#Code to check for collisions
 	for item in balls:
 		for brick in bricks:
-			side = brick.collision(ball)
+			side = brick.collision(item)
 			if side != None:
-				ball.update_velocity(side)
+				item.update_velocity(side)
 				brick.crack()
 				break
-		ball.wall_collisions()
-		side = paddle.collision(ball)
+		item.wall_collisions(ball)
+		side = paddle.collision(item)
 		if side != None:
-				ball.update_velocity(side)
+				item.update_velocity(side)
+				ball.move()
 				break
+	#Update score
+	game.itemconfigure(score_label,text=f"Score: {score}")
+
+	# print(math.sqrt(ball.x_velocity**2 + ball.y_velocity**2))
+
+	window.after(10, update_game)
+	return True
+
+def level_one():
+	global balls
+	global ball
+	global score
+	global score_label
+	global bricks
+	global paddle
+
+	#Delete anything currently on the canvas so we can replace everything (if game is restarted)
+	game.delete('all')
+
+	#Load paddle image and resize using PIL
+	#Usable under CC license
+	paddle_image = Image.open("paddle.png")
+	paddle_image = paddle_image.resize((154, 41))
+	paddle_image = ImageTk.PhotoImage(paddle_image)
+	paddle_id = game.create_image(int(WIDTH/2),int(HEIGHT)-5, anchor="s", image=paddle_image)
+	paddle = Paddle(paddle_id,paddle_image)
+
+
+	bricks = []
+	#Add label to display level
+	level_label = Label(game, text="Level 1", font=("Courier New", 28), bg="black")
+	level_label.pack()
+	level_label.place(x=3,y=3)
+
+	#Add label with score
+	score_label = game.create_text(WIDTH/2, 3, text=f"Score: {score}", font=("Courier New", 28), fill="white", anchor="n")
+
+
+	game.coords(paddle, int(WIDTH/2),int(HEIGHT)-5)
+
+
+	#Load ball image and resize using PIL
+	#Usable under CC license
+	ball_image = Image.open("ball.png")
+	ball_image = ball_image.resize((int(73/1.5), int(72//1.5)))
+	ball_image = ImageTk.PhotoImage(ball_image)
+	ball_id = game.create_image(int(WIDTH/2),int(HEIGHT-paddle_image.height()-5-(ball_image.width()/2)), anchor="center", image=ball_image)
+	
+	ball = Ball(ball_id, ball_image)
+	balls.append(ball)
+
+	#Loop to place bricks
+	for row in range(int(NUMBER_OF_ROWS)):
+		for brick in range(BRICKS_PER_ROW):
+			new_brick = GreyBrick(brick*BRICK_WIDTH,(row+1)*BRICK_HEIGHT)
+			bricks.append(new_brick)
+
+	while update_game():
+		game.update()
+
+	if balls:
+		#If the game is completed, display appropriate message and option to go to next level
+		finished_label = Label(game, text=f"Congratulations! \n You have completed Level 1", font=("Courier New", 60), bg="black")
+		finished_label.pack()
+		finished_label.place(x=WIDTH/2, y=HEIGHT/2, anchor="center")
+		level_two_button = Button(game, text="Next Level", command= level_two, font=("Courier New", 60),background="grey")
+		level_two_button.pack()
+		level_two_button.place(x=WIDTH/2, y=HEIGHT/2 + 120, anchor="center")
+	else:
+		#If game is lost, print appropriate message and option to restart
+		game_over_label = Label(game, text=f"GAME OVER...", font=("Courier New", 60), bg="black")
+		game_over_label.pack()
+		game_over_label.place(x=WIDTH/2, y=HEIGHT/2, anchor="center")
+		score = 0
+		restart_button = Button(game, text="Restart", command= lambda: restart(game_over_label,restart_button),font=("Courier New", 60),background="grey")
+		restart_button.pack()
+		restart_button.place(x=WIDTH/2, y=HEIGHT/2 + 120, anchor="center")
 
 		
+def level_two():
+	pass
 
-				
+def restart(game_over_label,restart_button):
 
+	#If the game is restarted, we want to destory the labels we just created
+	game_over_label.destroy()
+	restart_button.destroy()
+	game.update_idletasks()
+	level_one()
 
-	window.after(2, update_game)
 
 #Initialise window
 window = Tk()
@@ -194,30 +292,16 @@ window.title("Classic Brick Breaker")
 game = Canvas(window,bg="black",width=WIDTH,height=HEIGHT)
 game.pack()
 
-#Load paddle image and resize using PIL
-#Usable under CC license
-paddle_image = Image.open("paddle.png")
-paddle_image = paddle_image.resize((154, 41))
-paddle_image = ImageTk.PhotoImage(paddle_image)
-paddle_id = game.create_image(int(WIDTH/2),int(HEIGHT)-5, anchor="s", image=paddle_image)
-paddle = Paddle(paddle_id,paddle_image)
-
-#Load ball image and resize using PIL
-#Usable under CC license
-ball_image = Image.open("ball.png")
-ball_image = ball_image.resize((int(73/1.5), int(72//1.5)))
-ball_image = ImageTk.PhotoImage(ball_image)
-ball_id = game.create_image(int(WIDTH/2),int(HEIGHT-paddle_image.height()-5-(ball_image.width()/2)), anchor="center", image=ball_image)
-ball = Ball(ball_id, ball_image)
-
 balls = []
-balls.append(ball)
 
-BRICKS_PER_ROW = 10
+
+BRICKS_PER_ROW = 3
 BRICK_WIDTH = WIDTH // BRICKS_PER_ROW
 BRICK_HEIGHT = int(BRICK_WIDTH * (57 / 170))
 
-NUMBER_OF_ROWS = 5
+NUMBER_OF_ROWS = 1
+
+score = 0
 
 #Load and resize grey_brick_image
 #Usable under CC license
@@ -233,12 +317,6 @@ grey_brick_cracked_image = ImageTk.PhotoImage(grey_brick_cracked_image)
 
 bricks = []
 
-#Loop to place bricks
-for row in range(NUMBER_OF_ROWS):
-	for brick in range(BRICKS_PER_ROW):
-		new_brick = GreyBrick(brick*BRICK_WIDTH,row*BRICK_HEIGHT)
-		bricks.append(new_brick)
-
 #Bind left and right keys to move paddle
 window.bind("<Left>", lambda event: paddle.move_left(event))
 window.bind("<Right>", lambda event: paddle.move_right(event))
@@ -246,6 +324,6 @@ window.bind("<Right>", lambda event: paddle.move_right(event))
 #Bind left click to fire the ball initially
 window.bind("<Button-1>", lambda event: ball.fire(event.x,event.y))
 
-update_game()
+level_one()
 
 window.mainloop()
