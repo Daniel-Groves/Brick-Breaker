@@ -1,4 +1,4 @@
-from tkinter import Tk, Canvas, PhotoImage, Label, Button
+from tkinter import Tk, Canvas, PhotoImage, Label, Button, Entry
 import math
 from PIL import Image, ImageTk
 
@@ -204,10 +204,12 @@ def level_one():
 	global score_label
 	global bricks
 	global paddle
+	global level
 
 	#Delete anything currently on the canvas so we can replace everything (if game is restarted)
 	game.delete('all')
-
+	game.pack()
+	level = 1
 	#Load paddle image and resize using PIL
 	#Usable under CC license
 	paddle_image = Image.open("paddle.png")
@@ -260,42 +262,52 @@ def level_one():
 		level_two_button.pack()
 		level_two_button.place(x=WIDTH/2, y=HEIGHT/2 + 120, anchor="center")
 	else:
-		#If game is lost, print appropriate message and option to restart
+		#If game is lost, print appropriate message and option to play again
 		game_over_label = Label(game, text=f"GAME OVER...", font=("Courier New", 60), bg="black")
 		game_over_label.pack()
 		game_over_label.place(x=WIDTH/2, y=HEIGHT/2, anchor="center")
-		score = 0
-		restart_button = Button(game, text="Restart", command= lambda: restart(game_over_label,restart_button),font=("Courier New", 60),background="grey")
-		restart_button.pack()
-		restart_button.place(x=WIDTH/2, y=HEIGHT/2 + 120, anchor="center")
+
+		play_again_button = Button(game, text="Save & Play Again", command= lambda: play_again(game_over_label,play_again_button),font=("Courier New", 60),background="grey")
+		play_again_button.pack()
+		play_again_button.place(x=WIDTH/2, y=HEIGHT/2 + 120, anchor="center")
 
 		
 def level_two():
 	#Start level two
 	pass
 
-def restart(game_over_label,restart_button):
+def play_again(game_over_label,play_again_button):
 
-	#If the game is restarted, we want to destory the labels we just created
+	global score
+	
+	#Save the players go to a text file
+	with open('history.txt', 'a') as file:
+		file.write(f'{name},{score},{level}\n')
+	#Set score back to 0
+	score = 0
+	#If the game is play_agained, we want to destory the labels we just created
 	game_over_label.destroy()
-	restart_button.destroy()
+	play_again_button.destroy()
 	game.update_idletasks()
 	level_one()
 
 def create_pause_menu():
 	#Place the buttons for the pause menu
 
-	button_width = 15
-	button_height = 1			
+	button_width = int(WIDTH/85)
+	button_height = int(HEIGHT/720)		
 
 	resume_button = Button(pause_menu, text="Resume", command=unpause, font=("Courier New", 60),background="grey", width=button_width, height=button_height)
-	resume_button.place(x=WIDTH/2, y=HEIGHT/4, anchor="center")
+	resume_button.place(x=WIDTH/2, y=HEIGHT/5, anchor="center")
 
 	leaderboard_button = Button(pause_menu, text="Leaderboard", command=show_leaderboard, font=("Courier New", 60),background="grey", width=button_width, height=button_height)
-	leaderboard_button.place(x=WIDTH/2, y=(2*HEIGHT)/4, anchor="center")
+	leaderboard_button.place(x=WIDTH/2, y=(2*HEIGHT)/5, anchor="center")
 
 	settings_button = Button(pause_menu, text="Settings", command=settings, font=("Courier New", 60),background="grey", width=button_width, height=button_height)
-	settings_button.place(x=WIDTH/2, y=(3*HEIGHT)/4, anchor="center")
+	settings_button.place(x=WIDTH/2, y=(3*HEIGHT)/5, anchor="center")
+
+	save_and_exit_button = Button(pause_menu, text="Save and Exit", command=save_and_exit, font=("Courier New", 60),background="grey", width=button_width, height=button_height)
+	save_and_exit_button.place(x=WIDTH/2, y=(4*HEIGHT)/5, anchor="center")
 
 def pause(event):
 	#When called will remove the game from the window and show the pause menu
@@ -331,8 +343,8 @@ def create_settings(event=None):
 	right_text = settings_menu.create_text(WIDTH/3.5, (3*HEIGHT)/5, text="Move Right", font=("Courier New", 25), fill="white", anchor="w")
 	fire_text = settings_menu.create_text(WIDTH/3.5, (4*HEIGHT)/5, text="Fire", font=("Courier New", 25), fill="white", anchor="w")
 	
-	button_width = 15
-	button_height = 3
+	button_width = int(WIDTH/85)
+	button_height = int(HEIGHT/240)
 
 	left_button = Button(settings_menu, text="Left Arrow", command=lambda: wait_for_key_press(event,left_button,"left"), font=("Courier New", 25),background="grey", width=button_width, height=button_height)
 	left_button.place(x=WIDTH/2, y=(2*HEIGHT)/5, anchor="w")
@@ -359,7 +371,7 @@ def wait_for_key_press(event,button,action):
 
 	keys_to_handle = ["<Key>", "<Left>", "<Right>", "<Up>", "<Down>", "<BackSpace>", "<Delete>",
                       "<Return>", "<Shift_L>", "<Shift_R>", "<Control_L>", "<Control_R>",
-                      "<Alt_L>", "<Alt_R>"]
+                      "<Alt_L>", "<Alt_R>","<Button-1>", "<Button-2","<Button-3>"]
 	
 	for key in keys_to_handle:
 		window.bind(key, lambda event: capture_key(event, button, keys_to_handle, action))
@@ -382,6 +394,37 @@ def capture_key(event,button, keys_to_handle, action):
 	elif action == "fire":
 		window.bind(pressed_key, lambda event: ball.fire(event.x,event.y))
 
+def save_and_exit(name, score, level):
+	#Will save the name, score and level to a text file called history.txt
+
+	# Open the file in append mode and write the data
+    with open('history.txt', 'a') as file:
+        file.write(f'{name},{score},{level}\n')
+
+def start_game():
+	window.bind("<Return>", lambda event: submit_name(event, name_entry.get()))
+	enter_text = start.create_text(WIDTH/2, HEIGHT/4, text="Enter your name:", font=("Courier New", 50, "bold"), fill="white", anchor="center")
+	submit_text = start.create_text(WIDTH/2, (2*HEIGHT)/4, text="Press Enter to Submit...", font=("Courier New", 50), fill="white", anchor="center")
+
+	widget_width = int(WIDTH/50)
+	widget_height = int(HEIGHT/360)
+
+	#Create an entry for a user to enter their name
+	name_entry = Entry(start, font=("Courier New", 50), width=int(widget_width))
+	name_entry.place(x = WIDTH/2,y = (1.3*HEIGHT)/4, anchor="n")
+
+	# Create a button to submit the name
+	# submit_button = Button(start, text="Submit", command = lambda: submit_name(event, name_entry.get()), font=("Courier New", 50), height=int(widget_height), width=int(widget_width))
+	# submit_button.place(x = WIDTH/2,y = (2*HEIGHT)/4, anchor="n")
+
+def submit_name(event,name_entered):
+	window.unbind("<Return>")
+	start.pack_forget()
+	global name
+	name = name_entered
+	if name_entered:
+		window.bind("<Button-1>", lambda event: ball.fire(event.x,event.y))
+		level_one()
 
 #Initialise window
 window = Tk()
@@ -393,9 +436,11 @@ HEIGHT=720
 window.geometry(f"{WIDTH}x{HEIGHT}")
 window.title("Classic Brick Breaker")
 
+start = Canvas(window,bg="black",width=WIDTH,height=HEIGHT)
+start.pack()
+
 #Create game canvas on window
 game = Canvas(window,bg="black",width=WIDTH,height=HEIGHT)
-game.pack()
 paused = False
 
 pause_menu = Canvas(window, bg="black", width=WIDTH,height=HEIGHT)
@@ -429,15 +474,14 @@ grey_brick_cracked_image = grey_brick_cracked_image.resize((BRICK_WIDTH, BRICK_H
 grey_brick_cracked_image = ImageTk.PhotoImage(grey_brick_cracked_image)
 
 bricks = []
+start_game()
 
 #Bind left and right keys to move paddle
 window.bind("<Left>", lambda event: paddle.move_left(event))
 window.bind("<Right>", lambda event: paddle.move_right(event))
 
 #Bind left click to fire the ball initially
-window.bind("<Button-1>", lambda event: ball.fire(event.x,event.y))
 window.bind("<Escape>", pause)
 
-level_one()
 
 window.mainloop()
