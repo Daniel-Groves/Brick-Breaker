@@ -122,7 +122,7 @@ class Ball:
 		self.y_velocity = 0
 		self.fired = False
 
-	def fire(self,x,y,):
+	def fire(self,x,y):
 		if not self.fired:
 			#Work out the vectors of the click
 
@@ -304,6 +304,7 @@ def pause(event):
 	paused = True
 	game.pack_forget()
 	pause_menu.pack()
+	window.unbind("<Escape>")
 	window.bind("<Escape>", unpause)
 
 def unpause(event="None"):
@@ -312,44 +313,75 @@ def unpause(event="None"):
 
 	paused = False
 	pause_menu.pack_forget()
+	settings_menu.pack_forget()
 	game.pack()
+	window.unbind("<Escape>")
 	window.bind("<Escape>", pause)
 	pass
 
-def show_leaderboard(event):
+def show_leaderboard(event=None):
 	#When called will remove what is currently showing, and show the leaderboard
 	pass
 
-def create_settings():
+def create_settings(event=None):
 	#Creates the text and buttons that sit on the settings canvas
 
-	settings_text = settings.create_text(WIDTH/2, HEIGHT/6, text="Settings", font=("Courier New", 60, "bold"), fill="white", anchor="center")
-	left_text = settings.create_text(WIDTH/3.5, (2*HEIGHT)/6, text="Move Left", font=("Courier New", 25), fill="white", anchor="w")
-	right_text = settings.create_text(WIDTH/3.5, (3*HEIGHT)/6, text="Move Right", font=("Courier New", 25), fill="white", anchor="w")
-	fire_text = settings.create_text(WIDTH/3.5, (4*HEIGHT)/6, text="Fire", font=("Courier New", 25), fill="white", anchor="w")
-	pause_text = settings.create_text(WIDTH/3.5, (5*HEIGHT)/6, text="Pause", font=("Courier New", 25), fill="white", anchor="w")
+	settings_text = settings_menu.create_text(WIDTH/2, HEIGHT/5, text="Settings", font=("Courier New", 60, "bold"), fill="white", anchor="center")
+	left_text = settings_menu.create_text(WIDTH/3.5, (2*HEIGHT)/5, text="Move Left", font=("Courier New", 25), fill="white", anchor="w")
+	right_text = settings_menu.create_text(WIDTH/3.5, (3*HEIGHT)/5, text="Move Right", font=("Courier New", 25), fill="white", anchor="w")
+	fire_text = settings_menu.create_text(WIDTH/3.5, (4*HEIGHT)/5, text="Fire", font=("Courier New", 25), fill="white", anchor="w")
 	
 	button_width = 15
 	button_height = 3
 
-	left_button = Button(settings, text="Left Arrow", command=show_leaderboard, font=("Courier New", 25),background="grey", width=button_width, height=button_height)
-	left_button.place(x=WIDTH/2, y=(2*HEIGHT)/6, anchor="w")
+	left_button = Button(settings_menu, text="Left Arrow", command=lambda: wait_for_key_press(event,left_button,"left"), font=("Courier New", 25),background="grey", width=button_width, height=button_height)
+	left_button.place(x=WIDTH/2, y=(2*HEIGHT)/5, anchor="w")
 
-	right_button = Button(settings, text="Right Arrow", command=show_leaderboard, font=("Courier New", 25),background="grey", width=button_width, height=button_height)
-	right_button.place(x=WIDTH/2, y=(3*HEIGHT)/6, anchor="w")
+	right_button = Button(settings_menu, text="Right Arrow", command=lambda: wait_for_key_press(event,right_button,"right"), font=("Courier New", 25),background="grey", width=button_width, height=button_height)
+	right_button.place(x=WIDTH/2, y=(3*HEIGHT)/5, anchor="w")
 
-	fire_button = Button(settings, text="Left Click", command=show_leaderboard, font=("Courier New", 25),background="grey", width=button_width, height=button_height)
-	fire_button.place(x=WIDTH/2, y=(4*HEIGHT)/6, anchor="w")
-
-	pause_button = Button(settings, text="Escape", command=show_leaderboard, font=("Courier New", 25),background="grey", width=button_width, height=button_height)
-	pause_button.place(x=WIDTH/2, y=(5*HEIGHT)/6, anchor="w")
-	pass
+	fire_button = Button(settings_menu, text="Left Click", command=lambda: wait_for_key_press(event,fire_button,"fire"), font=("Courier New", 25),background="grey", width=button_width, height=button_height)
+	fire_button.place(x=WIDTH/2, y=(4*HEIGHT)/5, anchor="w")
 
 def settings():
 	#Will take user to settings page when called
+	window.bind("<Escape>", unpause)
 
 	pause_menu.pack_forget()
-	settings.pack()
+	settings_menu.pack()
+
+def wait_for_key_press(event,button,action):
+	#Function that waits for a key press to change settings
+	button.config(text="Press a key...")
+
+	#Temporarily bind the pressed key can call capture_key
+	#Note has to manually bind some keys as they don't automatically generate <Key> events
+
+	keys_to_handle = ["<Key>", "<Left>", "<Right>", "<Up>", "<Down>", "<BackSpace>", "<Delete>",
+                      "<Return>", "<Shift_L>", "<Shift_R>", "<Control_L>", "<Control_R>",
+                      "<Alt_L>", "<Alt_R>"]
+	
+	for key in keys_to_handle:
+		window.bind(key, lambda event: capture_key(event, button, keys_to_handle, action))
+
+
+def capture_key(event,button, keys_to_handle, action):
+	#Captures the new key press and binds it to the setting
+	#Unbinds the temporary keys
+
+	pressed_key = event.keysym
+	# window.bind(f"<Key-{pressed_key}>", show_leaderboard)
+
+	button.config(text=f"{pressed_key}")
+
+	#Depending on the button, rebind the key to the selected one
+	if action == "left":
+		window.bind(pressed_key, lambda event: paddle.move_left(event))
+	elif action == "right":
+		window.bind(pressed_key, lambda event: paddle.move_right(event))
+	elif action == "fire":
+		window.bind(pressed_key, lambda event: ball.fire(event.x,event.y))
+
 
 #Initialise window
 window = Tk()
@@ -369,8 +401,8 @@ paused = False
 pause_menu = Canvas(window, bg="black", width=WIDTH,height=HEIGHT)
 create_pause_menu()
 
-settings = Canvas(window, bg="black", width=WIDTH,height=HEIGHT)
-create_settings()
+settings_menu = Canvas(window, bg="black", width=WIDTH,height=HEIGHT)
+create_settings(None)
 
 
 balls = []
