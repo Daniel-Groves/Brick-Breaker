@@ -279,10 +279,11 @@ def level_two():
 def play_again(game_over_label,play_again_button):
 
 	global score
-	
 	#Save the players go to a text file
 	with open('history.txt', 'a') as file:
-		file.write(f'{name},{score},{level}\n')
+		file.write(f'{name},{score},{level},C\n') #Writing C to indicate completed game
+
+
 	#Set score back to 0
 	score = 0
 	#If the game is play_agained, we want to destory the labels we just created
@@ -326,18 +327,46 @@ def unpause(event="None"):
 	paused = False
 	pause_menu.pack_forget()
 	settings_menu.pack_forget()
+	leaderboard.pack_forget()
 	game.pack()
 	window.unbind("<Escape>")
 	window.bind("<Escape>", pause)
 	pass
 
 def show_leaderboard(event=None):
+	window.bind("<Escape>", unpause)
 	#When called will remove what is currently showing, and show the leaderboard
-	pass
+	#Read from history file
+	pause_menu.pack_forget()
+	with open("history.txt", 'r') as file:
+		lines = file.readlines()
+
+	#Turn data into a list of lists for each play through for easier access
+	data = [line.strip().split(',') for line in lines]
+
+	#Sort the items in the data with descending scores
+	ordered_scores = sorted(data, key=lambda x: int(x[1]), reverse=True)
+
+	#Create title text for the leaderboard
+	leaderboard.create_text(WIDTH/2, HEIGHT/100, anchor="n", text="Leaderboard:", font=("Courier New", 60, "bold"))
+	leaderboard.pack()
+
+	#Create column text
+	header_text = "{:<9} {:<10} {:<6}".format("RANK", "NAME", "SCORE")
+	leaderboard.create_text(WIDTH/4, (0.9*HEIGHT)/8, anchor="n", text="RANK", font=("Courier New", 50, "bold"))
+	leaderboard.create_text((2*WIDTH)/4, (0.9*HEIGHT)/8, anchor="n", text="NAME", font=("Courier New", 50, "bold"))
+	leaderboard.create_text((3*WIDTH)/4, (0.9*HEIGHT)/8, anchor="n", text="SCORE", font=("Courier New", 50, "bold"))
+
+	#Display the top ten leaderboard scores
+	for i, (name, score, level, completed) in enumerate(ordered_scores[:10], 1):
+		y_position = (1.2*HEIGHT)/8 + i * (HEIGHT/16)
+		leaderboard.create_text(WIDTH/4, y_position, anchor="n", text=i, font=("Courier New", 40))
+		leaderboard.create_text((2*WIDTH)/4, y_position, anchor="n", text=name, font=("Courier New", 40))
+		leaderboard.create_text((3*WIDTH)/4, y_position, anchor="n", text=score, font=("Courier New", 40))
+
 
 def create_settings(event=None):
 	#Creates the text and buttons that sit on the settings canvas
-
 	settings_text = settings_menu.create_text(WIDTH/2, HEIGHT/5, text="Settings", font=("Courier New", 60, "bold"), fill="white", anchor="center")
 	left_text = settings_menu.create_text(WIDTH/3.5, (2*HEIGHT)/5, text="Move Left", font=("Courier New", 25), fill="white", anchor="w")
 	right_text = settings_menu.create_text(WIDTH/3.5, (3*HEIGHT)/5, text="Move Right", font=("Courier New", 25), fill="white", anchor="w")
@@ -371,7 +400,7 @@ def wait_for_key_press(event,button,action):
 
 	keys_to_handle = ["<Key>", "<Left>", "<Right>", "<Up>", "<Down>", "<BackSpace>", "<Delete>",
                       "<Return>", "<Shift_L>", "<Shift_R>", "<Control_L>", "<Control_R>",
-                      "<Alt_L>", "<Alt_R>","<Button-1>", "<Button-2","<Button-3>"]
+                      "<Alt_L>", "<Alt_R>"]
 	
 	for key in keys_to_handle:
 		window.bind(key, lambda event: capture_key(event, button, keys_to_handle, action))
@@ -384,6 +413,7 @@ def capture_key(event,button, keys_to_handle, action):
 	pressed_key = event.keysym
 	# window.bind(f"<Key-{pressed_key}>", show_leaderboard)
 
+	print(f"{pressed_key},{action}")
 	button.config(text=f"{pressed_key}")
 
 	#Depending on the button, rebind the key to the selected one
@@ -394,37 +424,62 @@ def capture_key(event,button, keys_to_handle, action):
 	elif action == "fire":
 		window.bind(pressed_key, lambda event: ball.fire(event.x,event.y))
 
-def save_and_exit(name, score, level):
+def save_and_exit():
 	#Will save the name, score and level to a text file called history.txt
 
 	# Open the file in append mode and write the data
-    with open('history.txt', 'a') as file:
-        file.write(f'{name},{score},{level}\n')
+	with open('history.txt', 'a') as file:
+		file.write(f'{name},{score},{level},S\n') #Writing S to indicate saved game
+
+	#Close window
+	window.destroy()
 
 def start_game():
 	window.bind("<Return>", lambda event: submit_name(event, name_entry.get()))
 	enter_text = start.create_text(WIDTH/2, HEIGHT/4, text="Enter your name:", font=("Courier New", 50, "bold"), fill="white", anchor="center")
-	submit_text = start.create_text(WIDTH/2, (2*HEIGHT)/4, text="Press Enter to Submit...", font=("Courier New", 50), fill="white", anchor="center")
+	# submit_text = start.create_text(WIDTH/2, (2*HEIGHT)/4, text="Press Enter to Submit...", font=("Courier New", 50), fill="white", anchor="center")
 
 	widget_width = int(WIDTH/50)
 	widget_height = int(HEIGHT/360)
 
 	#Create an entry for a user to enter their name
-	name_entry = Entry(start, font=("Courier New", 50), width=int(widget_width))
-	name_entry.place(x = WIDTH/2,y = (1.3*HEIGHT)/4, anchor="n")
+	name_entry = Entry(start, font=("Courier New", 49), width=int(widget_width/2))
+	name_entry.place(x = WIDTH/2.1,y = (1.5*HEIGHT)/4, anchor="e")
 
 	# Create a button to submit the name
-	# submit_button = Button(start, text="Submit", command = lambda: submit_name(event, name_entry.get()), font=("Courier New", 50), height=int(widget_height), width=int(widget_width))
-	# submit_button.place(x = WIDTH/2,y = (2*HEIGHT)/4, anchor="n")
+	new_game_button = Button(start, text="New Game", command = lambda: submit_name(name_entry.get()), font=("Courier New", 30), height=int(widget_height), width=int(widget_width/1.3))
+	new_game_button.place(x = WIDTH/1.9,y = (1.5*HEIGHT)/4, anchor="w")
 
-def submit_name(event,name_entered):
-	window.unbind("<Return>")
-	start.pack_forget()
+	or_text = start.create_text(WIDTH/2, (2.1*HEIGHT)/4, text="or", font=("Courier New", 50, "bold"), fill="white", anchor="center")
+
+	#Create a button to load previous game
+	load_game_button = Button(start, text="Load Previous Game", command = load_previous, font=("Courier New", 30), height=int(widget_height), width=int(widget_width))
+	load_game_button.place(x = WIDTH/2,y = (2.5*HEIGHT)/4, anchor="n")
+
+
+def submit_name(name_entered):
 	global name
 	name = name_entered
+	print(f"aa {name_entered}")
 	if name_entered:
+		start.pack_forget()
+		window.unbind("<Return>")
 		window.bind("<Button-1>", lambda event: ball.fire(event.x,event.y))
 		level_one()
+
+def load_previous():
+	with open("history.txt", 'r') as file:
+		lines = file.readlines()
+
+		data = [line.strip().split(',') for line in lines][-1]
+
+	if data[3] == "C":
+		no_data_text = start.create_text(WIDTH/2, (3.2*HEIGHT)/4, text="Uh Oh... There is no game to load!", font=("Courier New", 30, "bold"), fill="white", anchor="center")
+
+	print(data)
+
+		
+
 
 #Initialise window
 window = Tk()
@@ -436,6 +491,7 @@ HEIGHT=720
 window.geometry(f"{WIDTH}x{HEIGHT}")
 window.title("Classic Brick Breaker")
 
+#Create canvas for starting game on window
 start = Canvas(window,bg="black",width=WIDTH,height=HEIGHT)
 start.pack()
 
@@ -443,12 +499,16 @@ start.pack()
 game = Canvas(window,bg="black",width=WIDTH,height=HEIGHT)
 paused = False
 
+#Create canvas for pause menu
 pause_menu = Canvas(window, bg="black", width=WIDTH,height=HEIGHT)
 create_pause_menu()
 
+#Create canvas for settings_menu
 settings_menu = Canvas(window, bg="black", width=WIDTH,height=HEIGHT)
 create_settings(None)
 
+#Create canvas for leaderboard
+leaderboard = Canvas(window, bg="black", width=WIDTH,height=HEIGHT)
 
 balls = []
 
