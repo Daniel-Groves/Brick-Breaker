@@ -113,6 +113,15 @@ class GreyBrick(Brick):
 		self.top_left = [x,y]
 		self.bottom_right = [x+BRICK_WIDTH,y-BRICK_HEIGHT]	
 
+class BlueBrick(Brick):
+	def __init__(self, x, y):
+		super().__init__(x, y, blue_brick_image, blue_brick_cracked_image)
+		self.image = blue_brick_image 
+		self.cracked_image = blue_brick_cracked_image
+		#Creates co-ordinates of top left and bottom right for collision detection purposes
+		self.top_left = [x,y]
+		self.bottom_right = [x+BRICK_WIDTH,y-BRICK_HEIGHT]
+
 class Ball:
 	def __init__(self, ball_id, ball_image):
 		self.id = ball_id
@@ -167,7 +176,6 @@ class Ball:
 
 def update_game():
 
-
 	if not paused:
 		#Updates the game to move the ball
 		ball.move()
@@ -202,6 +210,7 @@ def level_one():
 	global ball
 	global score
 	global score_label
+	global level_label
 	global bricks
 	global paddle
 	global level
@@ -221,7 +230,7 @@ def level_one():
 
 	bricks = []
 	#Add text to display level
-	level_label = game.create_text(3, 3, text="Level 1", font=("Courier New", 28), fill="white", anchor="nw")
+	level_label = game.create_text(3, 3, text=f"Level {level}", font=("Courier New", 28), fill="white", anchor="nw")
 
 
 	#Add text with score
@@ -254,8 +263,79 @@ def level_one():
 		game.update()
 
 	if balls:
+		game.itemconfig(ball_id, state="hidden")
+		game.itemconfig(paddle_id, state="hidden")
+		game.update_idletasks()
 		#If the game is completed, display appropriate message and option to go to next level
 		finished_label = Label(game, text=f"Congratulations! \n You have completed Level 1", font=("Courier New", 60), bg="black")
+		finished_label.pack()
+		finished_label.place(x=WIDTH/2, y=HEIGHT/2, anchor="center")
+		level_two_button = Button(game, text="Next Level", command= lambda: level_two(ball_id,paddle_id,paddle_image,ball_image, finished_label, level_two_button), font=("Courier New", 60),background="grey")
+		level_two_button.pack()
+		level_two_button.place(x=WIDTH/2, y=HEIGHT/2 + 120, anchor="center")
+	else:
+		#If game is lost, print appropriate message and option to play again
+		game_over_label = Label(game, text=f"GAME OVER...", font=("Courier New", 60), bg="black")
+		game_over_label.pack()
+		game_over_label.place(x=WIDTH/2, y=HEIGHT/2, anchor="center")
+
+		play_again_button = Button(game, text="Save & Play Again", command= lambda: play_again(game_over_label,play_again_button),font=("Courier New", 60),background="grey")
+		play_again_button.pack()
+		play_again_button.place(x=WIDTH/2, y=HEIGHT/2 + 120, anchor="center")
+
+		
+def level_two(ball_id,paddle_id, paddle_image, ball_image, finished_label, level_two_button):
+	#Start level two
+	global balls
+	global ball
+	global score
+	global score_label
+	global bricks
+	global paddle
+	global level
+	global level_label
+
+	#Destory labels from the end of level one
+	finished_label.destroy()
+	level_two_button.destroy()
+
+	#Update score label and save the score from the end of level one
+	level_one_score = score
+	level = 2
+	game.itemconfigure(level_label,text=f"Level: {level}")
+
+	#Put the paddle and bal back to the begining
+	game.coords(ball_id, int(WIDTH/2), int(HEIGHT-paddle_image.height()-5-(ball_image.width()/2)))
+	game.itemconfig(ball_id, state="normal")
+
+	game.coords(paddle_id, int(WIDTH/2),int(HEIGHT)-5)
+	game.itemconfig(paddle_id, state="normal")
+
+	bricks = []
+
+	#Update the screen
+	game.update_idletasks()
+
+	#Set the ball's velocities back to 0 and allow it to be refired
+	ball.x_velocity = 0
+	ball.y_velocity = 0
+	ball.fired = False
+
+	#Loop to place bricks
+	for row in range(int(NUMBER_OF_ROWS)):
+		for brick in range(BRICKS_PER_ROW):
+			new_brick = BlueBrick(brick*BRICK_WIDTH,(row+1)*BRICK_HEIGHT)
+			bricks.append(new_brick)
+
+	update = True
+
+	while update:
+		update = update_game()
+		game.update()
+
+	if balls:
+		#If the game is completed, display appropriate message and option to go to next level
+		finished_label = Label(game, text=f"Congratulations! \n You have completed Level 2", font=("Courier New", 60), bg="black")
 		finished_label.pack()
 		finished_label.place(x=WIDTH/2, y=HEIGHT/2, anchor="center")
 		level_two_button = Button(game, text="Next Level", command= level_two, font=("Courier New", 60),background="grey")
@@ -270,10 +350,6 @@ def level_one():
 		play_again_button = Button(game, text="Save & Play Again", command= lambda: play_again(game_over_label,play_again_button),font=("Courier New", 60),background="grey")
 		play_again_button.pack()
 		play_again_button.place(x=WIDTH/2, y=HEIGHT/2 + 120, anchor="center")
-
-		
-def level_two():
-	#Start level two
 	pass
 
 def play_again(game_over_label,play_again_button):
@@ -364,7 +440,6 @@ def show_leaderboard(event=None):
 		leaderboard.create_text((2*WIDTH)/4, y_position, anchor="n", text=name, font=("Courier New", 40))
 		leaderboard.create_text((3*WIDTH)/4, y_position, anchor="n", text=score, font=("Courier New", 40))
 
-
 def create_settings(event=None):
 	#Creates the text and buttons that sit on the settings canvas
 	settings_text = settings_menu.create_text(WIDTH/2, HEIGHT/5, text="Settings", font=("Courier New", 60, "bold"), fill="white", anchor="center")
@@ -405,15 +480,12 @@ def wait_for_key_press(event,button,action):
 	for key in keys_to_handle:
 		window.bind(key, lambda event: capture_key(event, button, keys_to_handle, action))
 
-
 def capture_key(event,button, keys_to_handle, action):
 	#Captures the new key press and binds it to the setting
 	#Unbinds the temporary keys
 
 	pressed_key = event.keysym
-	# window.bind(f"<Key-{pressed_key}>", show_leaderboard)
 
-	print(f"{pressed_key},{action}")
 	button.config(text=f"{pressed_key}")
 
 	#Depending on the button, rebind the key to the selected one
@@ -456,11 +528,11 @@ def start_game():
 	load_game_button = Button(start, text="Load Previous Game", command = load_previous, font=("Courier New", 30), height=int(widget_height), width=int(widget_width))
 	load_game_button.place(x = WIDTH/2,y = (2.5*HEIGHT)/4, anchor="n")
 
-
 def submit_name(name_entered):
 	global name
 	name = name_entered
-	print(f"aa {name_entered}")
+
+	#If they have entered a name...we start the game
 	if name_entered:
 		start.pack_forget()
 		window.unbind("<Return>")
@@ -476,7 +548,6 @@ def load_previous():
 	if data[3] == "C":
 		no_data_text = start.create_text(WIDTH/2, (3.2*HEIGHT)/4, text="Uh Oh... There is no game to load!", font=("Courier New", 30, "bold"), fill="white", anchor="center")
 
-	print(data)
 
 		
 
@@ -513,11 +584,11 @@ leaderboard = Canvas(window, bg="black", width=WIDTH,height=HEIGHT)
 balls = []
 
 
-BRICKS_PER_ROW = 10
+BRICKS_PER_ROW = 3
 BRICK_WIDTH = WIDTH // BRICKS_PER_ROW
 BRICK_HEIGHT = int(BRICK_WIDTH * (57 / 170))
 
-NUMBER_OF_ROWS = 3
+NUMBER_OF_ROWS = 1
 
 score = 0
 
@@ -533,6 +604,18 @@ grey_brick_cracked_image = Image.open("grey_brick_cracked.png")
 grey_brick_cracked_image = grey_brick_cracked_image.resize((BRICK_WIDTH, BRICK_HEIGHT))
 grey_brick_cracked_image = ImageTk.PhotoImage(grey_brick_cracked_image)
 
+#Load and resize blue_brick_image
+#Usable under CC license
+blue_brick_image = Image.open("blue_brick.png")
+blue_brick_image = blue_brick_image.resize((BRICK_WIDTH, BRICK_HEIGHT))
+blue_brick_image = ImageTk.PhotoImage(blue_brick_image)
+
+#Load and resize blue_brick_cracked_image
+#Usable under CC license
+blue_brick_cracked_image = Image.open("blue_brick_cracked.png")
+blue_brick_cracked_image = blue_brick_cracked_image.resize((BRICK_WIDTH, BRICK_HEIGHT))
+blue_brick_cracked_image = ImageTk.PhotoImage(blue_brick_cracked_image)
+
 bricks = []
 start_game()
 
@@ -540,7 +623,7 @@ start_game()
 window.bind("<Left>", lambda event: paddle.move_left(event))
 window.bind("<Right>", lambda event: paddle.move_right(event))
 
-#Bind left click to fire the ball initially
+#Bind escape to the pause function
 window.bind("<Escape>", pause)
 
 
