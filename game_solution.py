@@ -385,7 +385,7 @@ def create_pause_menu():
 	save_and_exit_button = Button(pause_menu, text="Save and Exit", command=save_and_exit, font=("Courier New", 60),background="grey", width=button_width, height=button_height)
 	save_and_exit_button.place(x=WIDTH/2, y=(4*HEIGHT)/5, anchor="center")
 
-def pause(event):
+def pause(event=None):
 	#When called will remove the game from the window and show the pause menu
 	global paused
 
@@ -398,7 +398,6 @@ def pause(event):
 def unpause(event="None"):
 	#When called will remove the pause menu from the window and show the game
 	global paused
-
 	paused = False
 	pause_menu.pack_forget()
 	settings_menu.pack_forget()
@@ -570,8 +569,7 @@ def load_previous():
 			ball_id, paddle_id, paddle_image, ball_image = create_elements()
 			level_two(ball_id,paddle_id, paddle_image, ball_image)
 			level = 2
-
-		
+	
 def create_elements():
 	global ball
 	global paddle
@@ -594,6 +592,28 @@ def create_elements():
 	balls.append(ball)
 
 	return ball_id, paddle_id, paddle_image, ball_image
+
+def boss_button(event=None):
+	#When the boss button is pressed we show the boss screen
+	#We also activate the pause menu in the background
+	if not paused:
+		pause()
+	#Stop displaying any other screens that may be present
+	pause_menu.pack_forget()
+	leaderboard.pack_forget()
+	settings_menu.pack_forget()
+	#Pack the boss screen
+	boss_screen.pack()
+	#Put image on the canvas
+	teams_screenshot_id = boss_screen.create_image(0,0, anchor="nw", image = teams_screenshot)
+	#We now bind the boss button to the function to end it
+	window.bind("<Control-b>", end_boss_button)
+
+def end_boss_button(event=None):
+	#If the boss button is called again, we end it and take the user to the pause menu
+	window.bind("<Control-b>", boss_button)
+	boss_screen.pack_forget()
+	pause_menu.pack()
 
 
 #Initialise window
@@ -624,6 +644,8 @@ create_settings(None)
 
 #Create canvas for leaderboard
 leaderboard = Canvas(window, bg="black", width=WIDTH,height=HEIGHT)
+
+boss_screen = Canvas(window, bg="black", width=WIDTH,height=HEIGHT)
 
 balls = []
 
@@ -660,6 +682,12 @@ blue_brick_cracked_image = Image.open("blue_brick_cracked.png")
 blue_brick_cracked_image = blue_brick_cracked_image.resize((BRICK_WIDTH, BRICK_HEIGHT))
 blue_brick_cracked_image = ImageTk.PhotoImage(blue_brick_cracked_image)
 
+#Load and resize teams_screenshot for the boss button
+#Usable under CC license
+teams_screenshot = Image.open("teams_screenshot.png")
+teams_screenshot = teams_screenshot.resize((WIDTH, HEIGHT))
+teams_screenshot = ImageTk.PhotoImage(teams_screenshot)
+
 bricks = []
 start_game()
 
@@ -669,6 +697,9 @@ window.bind("<Right>", lambda event: paddle.move_right(event))
 
 #Bind escape to the pause function
 window.bind("<Escape>", pause)
+
+#Bind Control + b to be the boss button
+window.bind("<Control-b>", boss_button)
 
 
 window.mainloop()
