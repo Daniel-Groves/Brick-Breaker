@@ -219,36 +219,19 @@ def level_one():
 	game.delete('all')
 	game.pack()
 	level = 1
-	#Load paddle image and resize using PIL
-	#Usable under CC license
-	paddle_image = Image.open("paddle.png")
-	paddle_image = paddle_image.resize((154, 41))
-	paddle_image = ImageTk.PhotoImage(paddle_image)
-	paddle_id = game.create_image(int(WIDTH/2),int(HEIGHT)-5, anchor="s", image=paddle_image)
-	paddle = Paddle(paddle_id,paddle_image)
 
+	#Create the elements
+	ball_id, paddle_id, paddle_image, ball_image = create_elements()
 
 	bricks = []
 	#Add text to display level
 	level_label = game.create_text(3, 3, text=f"Level {level}", font=("Courier New", 28), fill="white", anchor="nw")
 
-
 	#Add text with score
 	score_label = game.create_text(WIDTH/2, 3, text=f"Score: {score}", font=("Courier New", 28), fill="white", anchor="n")
 
-
+	#Move the paddle to the correct location
 	game.coords(paddle, int(WIDTH/2),int(HEIGHT)-5)
-
-
-	#Load ball image and resize using PIL
-	#Usable under CC license
-	ball_image = Image.open("ball.png")
-	ball_image = ball_image.resize((int(73/1.5), int(72//1.5)))
-	ball_image = ImageTk.PhotoImage(ball_image)
-	ball_id = game.create_image(int(WIDTH/2),int(HEIGHT-paddle_image.height()-5-(ball_image.width()/2)), anchor="center", image=ball_image)
-	
-	ball = Ball(ball_id, ball_image)
-	balls.append(ball)
 
 	#Loop to place bricks
 	for row in range(int(NUMBER_OF_ROWS)):
@@ -263,10 +246,11 @@ def level_one():
 		game.update()
 
 	if balls:
+		#If level is completed, hide the ball and paddle
 		game.itemconfig(ball_id, state="hidden")
 		game.itemconfig(paddle_id, state="hidden")
 		game.update_idletasks()
-		#If the game is completed, display appropriate message and option to go to next level
+		#If the level is completed, display appropriate message and option to go to next level
 		finished_label = Label(game, text=f"Congratulations! \n You have completed Level 1", font=("Courier New", 60), bg="black")
 		finished_label.pack()
 		finished_label.place(x=WIDTH/2, y=HEIGHT/2, anchor="center")
@@ -284,7 +268,8 @@ def level_one():
 		play_again_button.place(x=WIDTH/2, y=HEIGHT/2 + 120, anchor="center")
 
 		
-def level_two(ball_id,paddle_id, paddle_image, ball_image, finished_label, level_two_button):
+def level_two(ball_id,paddle_id, paddle_image, ball_image, finished_label=None, level_two_button=None):
+	print("starting level two")
 	#Start level two
 	global balls
 	global ball
@@ -294,15 +279,25 @@ def level_two(ball_id,paddle_id, paddle_image, ball_image, finished_label, level
 	global paddle
 	global level
 	global level_label
+	global saved_score
 
-	#Destory labels from the end of level one
-	finished_label.destroy()
-	level_two_button.destroy()
+	#Destory labels from the end of level one if they exist
+	try:
+		finished_label.destroy()
+		level_two_button.destroy()
+		game.delete(level_label)
+		game.delete(score_label)
+	except:
+		pass
 
 	#Update score label and save the score from the end of level one
-	level_one_score = score
+	saved_score = score
 	level = 2
-	game.itemconfigure(level_label,text=f"Level: {level}")
+	game.pack()
+
+	#Recreate score and level label
+	level_label = game.create_text(3, 3, text=f"Level {level}", font=("Courier New", 28), fill="white", anchor="nw")
+	score_label = game.create_text(WIDTH/2, 3, text=f"Score: {score}", font=("Courier New", 28), fill="white", anchor="n")
 
 	#Put the paddle and bal back to the begining
 	game.coords(ball_id, int(WIDTH/2), int(HEIGHT-paddle_image.height()-5-(ball_image.width()/2)))
@@ -334,7 +329,11 @@ def level_two(ball_id,paddle_id, paddle_image, ball_image, finished_label, level
 		game.update()
 
 	if balls:
-		#If the game is completed, display appropriate message and option to go to next level
+		#If the level is completed, hide the ball and paddle
+		game.itemconfig(ball_id, state="hidden")
+		game.itemconfig(paddle_id, state="hidden")
+		game.update_idletasks()
+		#If the level is completed, display appropriate message and option to go to next level
 		finished_label = Label(game, text=f"Congratulations! \n You have completed Level 2", font=("Courier New", 60), bg="black")
 		finished_label.pack()
 		finished_label.place(x=WIDTH/2, y=HEIGHT/2, anchor="center")
@@ -501,7 +500,8 @@ def save_and_exit():
 
 	# Open the file in append mode and write the data
 	with open('history.txt', 'a') as file:
-		file.write(f'{name},{score},{level},S\n') #Writing S to indicate saved game
+		file.write(f'{name},{saved_score},{level},S\n') #Writing S to indicate saved game
+														#Writing saved score as loading an incomplete game will start from beginning of latest level
 
 	#Close window
 	window.destroy()
@@ -540,16 +540,60 @@ def submit_name(name_entered):
 		level_one()
 
 def load_previous():
+	global score
+	global name
+
+	#Read the data of previous goes
 	with open("history.txt", 'r') as file:
 		lines = file.readlines()
-
+		#Take the most recent data item
 		data = [line.strip().split(',') for line in lines][-1]
 
 	if data[3] == "C":
+		#If the previous game was completed, then it cannot be loaded
 		no_data_text = start.create_text(WIDTH/2, (3.2*HEIGHT)/4, text="Uh Oh... There is no game to load!", font=("Courier New", 30, "bold"), fill="white", anchor="center")
+	else:
+		#Otherwise it can be loaded so we load it
 
+		start.pack_forget()
+		window.bind("<Button-1>", lambda event: ball.fire(event.x,event.y))
+
+		#Assign the global variables from the data
+		name = data[0]
+		score = int(data[1])
+
+		#Start at the correct level
+		if data[2] == "1":
+			level_one()
+			level = 1
+		elif data[2] == "2":
+			ball_id, paddle_id, paddle_image, ball_image = create_elements()
+			level_two(ball_id,paddle_id, paddle_image, ball_image)
+			level = 2
 
 		
+def create_elements():
+	global ball
+	global paddle
+	#Load paddle image and resize using PIL
+	#Usable under CC license
+	paddle_image = Image.open("paddle.png")
+	paddle_image = paddle_image.resize((154, 41))
+	paddle_image = ImageTk.PhotoImage(paddle_image)
+	paddle_id = game.create_image(int(WIDTH/2),int(HEIGHT)-5, anchor="s", image=paddle_image)
+	paddle = Paddle(paddle_id,paddle_image)
+
+	#Load ball image and resize using PIL
+	#Usable under CC license
+	ball_image = Image.open("ball.png")
+	ball_image = ball_image.resize((int(73/1.5), int(72//1.5)))
+	ball_image = ImageTk.PhotoImage(ball_image)
+	ball_id = game.create_image(int(WIDTH/2),int(HEIGHT-paddle_image.height()-5-(ball_image.width()/2)), anchor="center", image=ball_image)
+	
+	ball = Ball(ball_id, ball_image)
+	balls.append(ball)
+
+	return ball_id, paddle_id, paddle_image, ball_image
 
 
 #Initialise window
