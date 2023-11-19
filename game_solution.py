@@ -246,14 +246,14 @@ def level_one():
 
 	if balls:
 		#If level is completed, hide the ball and paddle
-		game.itemconfig(ball_id, state="hidden")
-		game.itemconfig(paddle_id, state="hidden")
+		game.itemconfig(ball.id, state="hidden")
+		game.itemconfig(paddle.id, state="hidden")
 		game.update_idletasks()
 		#If the level is completed, display appropriate message and option to go to next level
 		finished_label = Label(game, text=f"Congratulations! \n You have completed Level 1", font=("Courier New", 60), bg="black")
 		finished_label.pack()
 		finished_label.place(x=WIDTH/2, y=HEIGHT/2, anchor="center")
-		level_two_button = Button(game, text="Next Level", command= lambda: level_two(ball_id,paddle_id,paddle_image,ball_image, finished_label, level_two_button), font=("Courier New", 60),background="grey")
+		level_two_button = Button(game, text="Next Level", command= lambda: level_two(finished_label, level_two_button), font=("Courier New", 60),background="grey")
 		level_two_button.pack()
 		level_two_button.place(x=WIDTH/2, y=HEIGHT/2 + 120, anchor="center")
 	else:
@@ -266,7 +266,7 @@ def level_one():
 		play_again_button.pack()
 		play_again_button.place(x=WIDTH/2, y=HEIGHT/2 + 120, anchor="center")
 	
-def level_two(ball_id,paddle_id, paddle_image, ball_image, finished_label=None, level_two_button=None):
+def level_two(finished_label=None, level_two_button=None):
 	#Start level two
 	global balls
 	global ball
@@ -297,11 +297,11 @@ def level_two(ball_id,paddle_id, paddle_image, ball_image, finished_label=None, 
 	score_label = game.create_text(WIDTH/2, 3, text=f"Score: {score}", font=("Courier New", 28), fill="white", anchor="n")
 
 	#Put the paddle and bal back to the begining
-	game.coords(ball_id, int(WIDTH/2), int(HEIGHT-paddle_image.height()-5-(ball_image.width()/2)))
-	game.itemconfig(ball_id, state="normal")
+	game.coords(ball.id, int(WIDTH/2), int(HEIGHT-paddle.image.height()-5-(ball.image.width()/2)))
+	game.itemconfig(ball.id, state="normal")
 
-	game.coords(paddle_id, int(WIDTH/2),int(HEIGHT)-5)
-	game.itemconfig(paddle_id, state="normal")
+	game.coords(paddle.id, int(WIDTH/2),int(HEIGHT)-5)
+	game.itemconfig(paddle.id, state="normal")
 
 	bricks = []
 
@@ -327,8 +327,8 @@ def level_two(ball_id,paddle_id, paddle_image, ball_image, finished_label=None, 
 
 	if balls:
 		#If the level is completed, hide the ball and paddle
-		game.itemconfig(ball_id, state="hidden")
-		game.itemconfig(paddle_id, state="hidden")
+		game.itemconfig(ball.id, state="hidden")
+		game.itemconfig(paddle.id, state="hidden")
 		game.update_idletasks()
 		#If the level is completed, display appropriate message and option to go to next level
 		finished_label = Label(game, text=f"Congratulations! \n You have completed Level 2", font=("Courier New", 60), bg="black")
@@ -563,8 +563,8 @@ def load_previous():
 			level_one()
 			level = 1
 		elif data[2] == "2":
-			ball_id, paddle_id, paddle_image, ball_image = create_elements()
-			level_two(ball_id,paddle_id, paddle_image, ball_image)
+			ball.id, paddle.id, paddle.image, ball.image = create_elements()
+			level_two()
 			level = 2
 	
 def create_elements():
@@ -681,11 +681,11 @@ boss_screen = Canvas(window, bg="black", width=WIDTH,height=HEIGHT)
 balls = []
 cheat_sequence = []
 
-BRICKS_PER_ROW = 10
+BRICKS_PER_ROW = 3
 BRICK_WIDTH = WIDTH // BRICKS_PER_ROW
 BRICK_HEIGHT = int(BRICK_WIDTH * (57 / 170))
 
-NUMBER_OF_ROWS = 3
+NUMBER_OF_ROWS = 1
 
 score = 0
 saved_score = 0
