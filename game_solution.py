@@ -47,6 +47,9 @@ class Paddle:
 						return "top"
 					else:
 						return "bottom"		
+	
+	def get_coords(self):
+		return game.coords(self.id)
 
 #Define the brick class
 class Brick:
@@ -171,8 +174,6 @@ class Ball:
 			balls.remove(self)
 			game.delete(self.id)
 			del self
-			
-
 
 def update_game():
 
@@ -200,8 +201,6 @@ def update_game():
 					break
 		#Update score
 		game.itemconfigure(score_label,text=f"Score: {score}")
-
-		# print(math.sqrt(ball.x_velocity**2 + ball.y_velocity**2))
 
 	return True
 
@@ -266,10 +265,8 @@ def level_one():
 		play_again_button = Button(game, text="Save & Play Again", command= lambda: play_again(game_over_label,play_again_button),font=("Courier New", 60),background="grey")
 		play_again_button.pack()
 		play_again_button.place(x=WIDTH/2, y=HEIGHT/2 + 120, anchor="center")
-
-		
+	
 def level_two(ball_id,paddle_id, paddle_image, ball_image, finished_label=None, level_two_button=None):
-	print("starting level two")
 	#Start level two
 	global balls
 	global ball
@@ -518,7 +515,7 @@ def start_game():
 	name_entry.place(x = WIDTH/2.1,y = (1.5*HEIGHT)/4, anchor="e")
 
 	# Create a button to submit the name
-	new_game_button = Button(start, text="New Game", command = lambda: submit_name(name_entry.get()), font=("Courier New", 30), height=int(widget_height), width=int(widget_width/1.3))
+	new_game_button = Button(start, text="New Game", command = lambda: submit_name(None,name_entry.get()), font=("Courier New", 30), height=int(widget_height), width=int(widget_width/1.3))
 	new_game_button.place(x = WIDTH/1.9,y = (1.5*HEIGHT)/4, anchor="w")
 
 	or_text = start.create_text(WIDTH/2, (2.1*HEIGHT)/4, text="or", font=("Courier New", 50, "bold"), fill="white", anchor="center")
@@ -527,7 +524,7 @@ def start_game():
 	load_game_button = Button(start, text="Load Previous Game", command = load_previous, font=("Courier New", 30), height=int(widget_height), width=int(widget_width))
 	load_game_button.place(x = WIDTH/2,y = (2.5*HEIGHT)/4, anchor="n")
 
-def submit_name(name_entered):
+def submit_name(event,name_entered):
 	global name
 	name = name_entered
 
@@ -615,6 +612,40 @@ def end_boss_button(event=None):
 	boss_screen.pack_forget()
 	pause_menu.pack()
 
+def cheat_code_check(event):
+	global cheat_sequence
+    # Check if the pressed keys match the desired sequence
+	if event.keysym == "1":  # state 0 means no modifiers (Shift, Ctrl, Alt)
+		cheat_sequence.append("1")
+	elif event.keysym == "2":
+		cheat_sequence.append("2")
+	elif event.keysym == "3":
+		cheat_sequence.append("3")
+	elif event.keysym == "4":
+		cheat_sequence.append("4")
+	else:
+		cheat_sequence = []
+
+    # Check if the current sequence matches the cheat sequence
+	if "1234" in "".join(cheat_sequence):
+		cheat()
+		cheat_sequence = []
+
+
+def cheat():
+	global paddle
+	# original_coords = paddle.get_coords()
+
+	#Load paddle image and resize using PIL to larger than normal
+	#Usable under CC license
+	big_paddle_image = Image.open("paddle.png")
+	big_paddle_image = big_paddle_image.resize((254, 41))
+	big_paddle_image = ImageTk.PhotoImage(big_paddle_image)
+
+	#Change the size of the paddle
+	paddle.image = big_paddle_image
+	game.itemconfig(paddle.id, image=big_paddle_image)
+
 
 #Initialise window
 window = Tk()
@@ -648,15 +679,16 @@ leaderboard = Canvas(window, bg="black", width=WIDTH,height=HEIGHT)
 boss_screen = Canvas(window, bg="black", width=WIDTH,height=HEIGHT)
 
 balls = []
+cheat_sequence = []
 
-
-BRICKS_PER_ROW = 3
+BRICKS_PER_ROW = 10
 BRICK_WIDTH = WIDTH // BRICKS_PER_ROW
 BRICK_HEIGHT = int(BRICK_WIDTH * (57 / 170))
 
-NUMBER_OF_ROWS = 1
+NUMBER_OF_ROWS = 3
 
 score = 0
+saved_score = 0
 
 #Load and resize grey_brick_image
 #Usable under CC license
@@ -700,6 +732,12 @@ window.bind("<Escape>", pause)
 
 #Bind Control + b to be the boss button
 window.bind("<Control-b>", boss_button)
+
+#Bind 1,2,3,4 to the function to test for the boss sequence
+window.bind("1", cheat_code_check)
+window.bind("2", cheat_code_check)
+window.bind("3", cheat_code_check)
+window.bind("4", cheat_code_check)
 
 
 window.mainloop()
