@@ -55,6 +55,8 @@ class Paddle:
 class Brick:
 	#initialise object
 	def __init__(self, x, y, image, cracked_image):
+		self.x = x
+		self.y = y
 		self.image = image
 		self.cracked_image = cracked_image	
 		self.id = game.create_image(x,y, anchor="nw", image=self.image)
@@ -134,6 +136,45 @@ class LightBlueBrick(Brick):
 		self.top_left = [x,y]
 		self.bottom_right = [x+BRICK_WIDTH,y-BRICK_HEIGHT]
 
+class UnbreakableBrick(Brick):
+	def __init__(self, x, y, color):
+		super().__init__(x, y, None, None)  # No images for unbreakable brick
+		self.color = color
+		self.id = game.create_rectangle(x, y, x + BRICK_WIDTH - 1, y + BRICK_HEIGHT - 1, fill=color)
+		# Creates coordinates of top left and bottom right for collision detection purposes
+		self.top_left = [x, y]
+		self.bottom_right = [x + BRICK_WIDTH, y - BRICK_HEIGHT]
+	def crack(self):
+		# Unbreakable brick cannot be cracked, so do nothing
+		pass
+	def collision(self, ball):
+		# Checks to see if a ball collides with brick
+		x_ball_center, y_ball_center = game.coords(ball.id)
+		x_brick_left, y_brick_top, x_brick_right, y_brick_bottom = self.x,self.y,(self.x + BRICK_WIDTH - 1), (self.y + BRICK_HEIGHT - 1)
+
+		ball_radius = (ball.image).width() / 2
+
+		# Checks if the ball is within the bounds of the brick
+		if (x_brick_left - ball_radius < x_ball_center < x_brick_right + ball_radius) and (y_brick_top - ball_radius < y_ball_center < y_brick_bottom + ball_radius):
+
+			#Works out the overlap of the ball
+			x_overlap = min(x_ball_center - (x_brick_left - ball_radius), (x_brick_right + ball_radius) - x_ball_center)
+			y_overlap = min(y_ball_center - (y_brick_top - ball_radius), (y_brick_bottom + ball_radius) - y_ball_center)
+
+			#Uses overlap to work out which side of the brick the ball collides with
+			if x_overlap < y_overlap:
+				if x_ball_center < (x_brick_left + x_brick_right) / 2:
+					return "left"
+				else:
+					return "right"
+			else:
+				if y_ball_center < (y_brick_top + y_brick_bottom) / 2:
+					return "top"
+				else:
+					return "bottom"
+
+		return None
+
 class Ball:
 	def __init__(self, ball_id, ball_image):
 		self.id = ball_id
@@ -177,7 +218,7 @@ class Ball:
 		#checks for collisions with walls and updates velocity appropriately
 		if game.coords(ball.id)[0] < (ball.image.width()/2 + 2) or game.coords(ball.id)[0] > (WIDTH - ball.image.width()/2 - 2):
 			self.x_velocity = -self.x_velocity
-		elif game.coords(ball.id)[1] < (ball.image.height()/2 + 2):
+		elif game.coords(ball.id)[1] < (ball.image.height()/2):
 			self.y_velocity = -self.y_velocity
 		elif game.coords(ball.id)[1] > (HEIGHT - ball.image.width()/2 - 2):
 			balls.remove(self)
@@ -322,10 +363,17 @@ def level_two(finished_label=None, level_two_button=None):
 	ball.y_velocity = 0
 	ball.fired = False
 
+	unbreakable_positions = [[1,5,9],[1,5,9],[3,7],[3,7]]
+
 	#Loop to place bricks
 	for row in range(int(NUMBER_OF_ROWS)):
 		for brick in range(BRICKS_PER_ROW):
-			new_brick = BlueBrick(brick*BRICK_WIDTH,(row+1)*BRICK_HEIGHT)
+			x = brick * BRICK_WIDTH
+			y = (row + 1) * BRICK_HEIGHT
+			if brick in unbreakable_positions[row]:  # Every third brick is UnbreakableBrick
+				new_brick = UnbreakableBrick(x, y, "grey")
+			else:
+				new_brick = BlueBrick(brick*BRICK_WIDTH,(row+1)*BRICK_HEIGHT)
 			bricks.append(new_brick)
 
 	update = True
@@ -371,10 +419,13 @@ def level_three(finished_label=None, level_three_button=None):
 	global saved_score
 
 	#Destory labels from the end of level one if they exist
-	finished_label.destroy()
-	level_three_button.destroy()
-	game.delete(level_label)
-	game.delete(score_label)
+	try:
+		finished_label.destroy()
+		level_three_button.destroy()
+		game.delete(level_label)
+		game.delete(score_label)
+	except:
+		pass
 
 	#Update score label and save the score from the end of level one
 	saved_score = score
@@ -402,10 +453,17 @@ def level_three(finished_label=None, level_three_button=None):
 	ball.y_velocity = 0
 	ball.fired = False
 
+	unbreakable_positions = [[1,2,3],[5,6,7],[0,1,5,6],[3,4,8,9]]
+
 	#Loop to place bricks
 	for row in range(int(NUMBER_OF_ROWS)):
 		for brick in range(BRICKS_PER_ROW):
-			new_brick = LightBlueBrick(brick*BRICK_WIDTH,(row+1)*BRICK_HEIGHT)
+			x = brick * BRICK_WIDTH
+			y = (row + 1) * BRICK_HEIGHT
+			if brick in unbreakable_positions[row]:  # Every third brick is UnbreakableBrick
+				new_brick = UnbreakableBrick(x, y, "grey")
+			else:
+				new_brick = LightBlueBrick(brick*BRICK_WIDTH,(row+1)*BRICK_HEIGHT)
 			bricks.append(new_brick)
 
 	update = True
@@ -660,6 +718,10 @@ def load_previous():
 			ball.id, paddle.id, paddle.image, ball.image = create_elements()
 			level_two()
 			level = 2
+		elif data[2] == "3":
+			ball.id, paddle.id, paddle.image, ball.image = create_elements()
+			level_three()
+			level = 3
 	
 def create_elements():
 	global ball
@@ -774,11 +836,11 @@ boss_screen = Canvas(window, bg="black", width=WIDTH,height=HEIGHT)
 balls = []
 cheat_sequence = []
 
-BRICKS_PER_ROW = 3
+BRICKS_PER_ROW = 10
 BRICK_WIDTH = WIDTH // BRICKS_PER_ROW
 BRICK_HEIGHT = int(BRICK_WIDTH * (57 / 170))
 
-NUMBER_OF_ROWS = 1
+NUMBER_OF_ROWS = 4
 
 score = 0
 saved_score = 0
