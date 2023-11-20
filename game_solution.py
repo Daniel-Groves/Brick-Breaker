@@ -125,6 +125,15 @@ class BlueBrick(Brick):
 		self.top_left = [x,y]
 		self.bottom_right = [x+BRICK_WIDTH,y-BRICK_HEIGHT]
 
+class LightBlueBrick(Brick):
+	def __init__(self, x, y):
+		super().__init__(x, y, light_blue_brick_image, light_blue_brick_cracked_image)
+		self.image = light_blue_brick_image 
+		self.cracked_image = light_blue_brick_cracked_image
+		#Creates co-ordinates of top left and bottom right for collision detection purposes
+		self.top_left = [x,y]
+		self.bottom_right = [x+BRICK_WIDTH,y-BRICK_HEIGHT]
+
 class Ball:
 	def __init__(self, ball_id, ball_image):
 		self.id = ball_id
@@ -257,7 +266,7 @@ def level_one():
 		level_two_button.pack()
 		level_two_button.place(x=WIDTH/2, y=HEIGHT/2 + 120, anchor="center")
 	else:
-		#If game is lost, print appropriate message and option to play again
+		#If game is lost, display appropriate message and option to play again
 		game_over_label = Label(game, text=f"GAME OVER...", font=("Courier New", 60), bg="black")
 		game_over_label.pack()
 		game_over_label.place(x=WIDTH/2, y=HEIGHT/2, anchor="center")
@@ -334,9 +343,90 @@ def level_two(finished_label=None, level_two_button=None):
 		finished_label = Label(game, text=f"Congratulations! \n You have completed Level 2", font=("Courier New", 60), bg="black")
 		finished_label.pack()
 		finished_label.place(x=WIDTH/2, y=HEIGHT/2, anchor="center")
-		level_two_button = Button(game, text="Next Level", command= level_two, font=("Courier New", 60),background="grey")
-		level_two_button.pack()
-		level_two_button.place(x=WIDTH/2, y=HEIGHT/2 + 120, anchor="center")
+		level_three_button = Button(game, text="Next Level", command= lambda: level_three(finished_label, level_three_button), font=("Courier New", 60),background="grey")
+		level_three_button.pack()
+		level_three_button.place(x=WIDTH/2, y=HEIGHT/2 + 120, anchor="center")
+	else:
+		#If game is lost, display
+		#  appropriate message and option to play again
+		game_over_label = Label(game, text=f"GAME OVER...", font=("Courier New", 60), bg="black")
+		game_over_label.pack()
+		game_over_label.place(x=WIDTH/2, y=HEIGHT/2, anchor="center")
+
+		play_again_button = Button(game, text="Save & Play Again", command= lambda: play_again(game_over_label,play_again_button),font=("Courier New", 60),background="grey")
+		play_again_button.pack()
+		play_again_button.place(x=WIDTH/2, y=HEIGHT/2 + 120, anchor="center")
+	pass
+
+def level_three(finished_label=None, level_three_button=None):
+	#Start level two
+	global balls
+	global ball
+	global score
+	global score_label
+	global bricks
+	global paddle
+	global level
+	global level_label
+	global saved_score
+
+	#Destory labels from the end of level one if they exist
+	finished_label.destroy()
+	level_three_button.destroy()
+	game.delete(level_label)
+	game.delete(score_label)
+
+	#Update score label and save the score from the end of level one
+	saved_score = score
+	level = 3
+	game.pack()
+
+	#Recreate score and level label
+	level_label = game.create_text(3, 3, text=f"Level {level}", font=("Courier New", 28), fill="white", anchor="nw")
+	score_label = game.create_text(WIDTH/2, 3, text=f"Score: {score}", font=("Courier New", 28), fill="white", anchor="n")
+
+	#Put the paddle and bal back to the begining
+	game.coords(ball.id, int(WIDTH/2), int(HEIGHT-paddle.image.height()-5-(ball.image.width()/2)))
+	game.itemconfig(ball.id, state="normal")
+
+	game.coords(paddle.id, int(WIDTH/2),int(HEIGHT)-5)
+	game.itemconfig(paddle.id, state="normal")
+
+	bricks = []
+
+	#Update the screen
+	game.update_idletasks()
+
+	#Set the ball's velocities back to 0 and allow it to be refired
+	ball.x_velocity = 0
+	ball.y_velocity = 0
+	ball.fired = False
+
+	#Loop to place bricks
+	for row in range(int(NUMBER_OF_ROWS)):
+		for brick in range(BRICKS_PER_ROW):
+			new_brick = LightBlueBrick(brick*BRICK_WIDTH,(row+1)*BRICK_HEIGHT)
+			bricks.append(new_brick)
+
+	update = True
+
+	while update:
+		update = update_game()
+		game.update()
+
+	if balls:
+		#If the level is completed, hide the ball and paddle
+		game.itemconfig(ball.id, state="hidden")
+		game.itemconfig(paddle.id, state="hidden")
+		game.update_idletasks()
+		#If the level is completed, display appropriate message and option to go to next level
+		finished_label = Label(game, text=f"Congratulations! \n You have completed the game!", font=("Courier New", 60), bg="black")
+		finished_label.pack()
+		finished_label.place(x=WIDTH/2, y=HEIGHT/2, anchor="center")
+		#Save the players go to a text file
+		with open('history.txt', 'a') as file:
+			file.write(f'{name},{score},{level},C\n') #Writing C to indicate completed game
+		#Add a completion screen
 	else:
 		#If game is lost, print appropriate message and option to play again
 		game_over_label = Label(game, text=f"GAME OVER...", font=("Courier New", 60), bg="black")
@@ -550,6 +640,10 @@ def load_previous():
 		no_data_text = start.create_text(WIDTH/2, (3.2*HEIGHT)/4, text="Uh Oh... There is no game to load!", font=("Courier New", 30, "bold"), fill="white", anchor="center")
 	else:
 		#Otherwise it can be loaded so we load it
+		#Remove the last line, as we don't want duplicates in the leaderboard
+		lines = lines[:-1]
+		with open("history.txt", 'w') as file:
+			file.writelines(lines)
 
 		start.pack_forget()
 		window.bind("<Button-1>", lambda event: ball.fire(event.x,event.y))
@@ -630,7 +724,6 @@ def cheat_code_check(event):
 	if "1234" in "".join(cheat_sequence):
 		cheat()
 		cheat_sequence = []
-
 
 def cheat():
 	global paddle
@@ -713,6 +806,18 @@ blue_brick_image = ImageTk.PhotoImage(blue_brick_image)
 blue_brick_cracked_image = Image.open("blue_brick_cracked.png")
 blue_brick_cracked_image = blue_brick_cracked_image.resize((BRICK_WIDTH, BRICK_HEIGHT))
 blue_brick_cracked_image = ImageTk.PhotoImage(blue_brick_cracked_image)
+
+#Usable under CC license
+#Load and resize light_blue_brick_image
+light_blue_brick_image = Image.open("light_blue_brick.png")
+light_blue_brick_image = light_blue_brick_image.resize((BRICK_WIDTH, BRICK_HEIGHT))
+light_blue_brick_image = ImageTk.PhotoImage(light_blue_brick_image)
+
+#Load and resize light_blue_brick_cracked_image
+#Usable under CC license
+light_blue_brick_cracked_image = Image.open("light_blue_brick_cracked.png")
+light_blue_brick_cracked_image = light_blue_brick_cracked_image.resize((BRICK_WIDTH, BRICK_HEIGHT))
+light_blue_brick_cracked_image = ImageTk.PhotoImage(light_blue_brick_cracked_image)
 
 #Load and resize teams_screenshot for the boss button
 #Usable under CC license
