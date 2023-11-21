@@ -15,10 +15,14 @@ class Paddle:
 	def move_left(self,event):
 		if ball.fired:
 			game.move(self.id, -self.speed, 0)
+			if game.bbox(self.id)[0] < 0:
+				game.move(self.id, -game.bbox(self.id)[0],0)
 
 	def move_right(self,event):
 		if ball.fired:
 			game.move(self.id, self.speed, 0)
+			if game.bbox(self.id)[2] > WIDTH:
+				game.move(self.id, WIDTH-game.bbox(self.id)[2],0)
 
 	def collision(self, ball):
 		# Note this code is very similar to the respective method for bricks, so this should be made more concise in the future
@@ -49,7 +53,6 @@ class Paddle:
 						#Work out the relative position of the ball from the center of the paddle from 0-1
 						collision_point = game.coords(ball.id)[0] - game.coords(paddle.id)[0]
 						relative_collision_point = collision_point/((x_paddle_left-x_paddle_right)/2)
-						print(relative_collision_point)
 						return "top", relative_collision_point
 					else:
 						return "bottom", relative_collision_point
@@ -285,7 +288,6 @@ def update_game():
 					ball.move()
 					break
 			item.wall_collisions(ball)
-			print
 			side, relative_collision_point = paddle.collision(item)
 			if side != None:
 				item.update_velocity(side, relative_collision_point)
@@ -530,7 +532,7 @@ def level_three(finished_label=None, level_three_button=None):
 			file.write(f'{name},{score},{level},C\n') #Writing C to indicate completed game
 		#Add a completion screen
 	else:
-		#If game is lost, print appropriate message and option to play again
+		#If game is lost, display appropriate message and option to play again
 		game_over_label = Label(game, text=f"GAME OVER...", font=("Courier New", 60), bg="black")
 		game_over_label.pack()
 		game_over_label.place(x=WIDTH/2, y=HEIGHT/2, anchor="center")
