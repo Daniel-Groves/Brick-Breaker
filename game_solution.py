@@ -246,7 +246,7 @@ class Ball:
 			self.x_velocity = -self.x_velocity
 		elif game.coords(ball.id)[1] < (ball.image.height()/2 + 2):
 			self.y_velocity = -self.y_velocity
-		elif game.coords(ball.id)[1] > (HEIGHT - ball.image.width()/2 - 2):
+		elif game.coords(ball.id)[1] > (HEIGHT - ball.image.width()/2):
 			balls.remove(self)
 			game.delete(self.id)
 			del self
@@ -366,6 +366,7 @@ def level_two(finished_label=None, level_two_button=None):
 	saved_score = score
 	level = 2
 	game.pack()
+	ball.speed = 12
 
 	#Recreate score and level label
 	level_label = game.create_text(3, 3, text=f"Level {level}", font=("Courier New", 28), fill="white", anchor="nw")
@@ -456,6 +457,7 @@ def level_three(finished_label=None, level_three_button=None):
 	saved_score = score
 	level = 3
 	game.pack()
+	ball.speed = 15
 
 	#Recreate score and level label
 	level_label = game.create_text(3, 3, text=f"Level {level}", font=("Courier New", 28), fill="white", anchor="nw")
