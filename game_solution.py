@@ -38,6 +38,8 @@ class Paddle:
 
 				#Uses overlap to work out which side of the paddle the ball collides with (should mostly be top)
 				if x_overlap < y_overlap:
+					collision_point = game.coords(ball.id)[0] - game.coords(paddle.id)[0]
+					print(collision_point)
 					if x_ball_center < (x_paddle_left + x_paddle_right) / 2:
 						return "left"
 					else:
@@ -79,6 +81,26 @@ class Brick:
 			game.delete(self.id)
 			del self
 			
+	def has_brick_on_side(self, side):
+		# Check if there is a brick on the specified side
+		x, y = self.x, self.y
+		if side == "left":
+			for brick in bricks:
+				if brick != self and brick.x + BRICK_WIDTH == x and brick.y == y:
+					return True
+		elif side == "right":
+			for brick in bricks:
+				if brick != self and brick.x - BRICK_WIDTH == x and brick.y == y:
+					return True
+		elif side == "top":
+			for brick in bricks:
+				if brick != self and brick.x == x and brick.y + BRICK_HEIGHT == y:
+					return True
+		elif side == "bottom":
+			for brick in bricks:
+				if brick != self and brick.x == x and brick.y - BRICK_HEIGHT == y:
+					return True
+		return False
 
 	def collision(self, ball):
 		# Checks to see if a ball collides with brick
@@ -95,15 +117,17 @@ class Brick:
 			y_overlap = min(y_ball_center - (y_brick_top - ball_radius), (y_brick_bottom + ball_radius) - y_ball_center)
 
 			#Uses overlap to work out which side of the brick the ball collides with
+			#Don't bother returning anything if a collision is detected on a side where there is already a brick
+			#This only happens when the game thinks a ball collides with two bricks and can cause issues
 			if x_overlap < y_overlap:
-				if x_ball_center < (x_brick_left + x_brick_right) / 2:
+				if x_ball_center < (x_brick_left + x_brick_right) / 2 and not self.has_brick_on_side("left"):
 					return "left"
-				else:
+				elif x_ball_center >= (x_brick_left + x_brick_right) / 2 and not self.has_brick_on_side("right"):
 					return "right"
 			else:
-				if y_ball_center < (y_brick_top + y_brick_bottom) / 2:
+				if y_ball_center < (y_brick_top + y_brick_bottom) / 2 and not self.has_brick_on_side("top"):
 					return "top"
-				else:
+				elif y_ball_center >= (y_brick_top + y_brick_bottom) / 2 and not self.has_brick_on_side("bottom"):
 					return "bottom"
 
 		return None
@@ -150,27 +174,29 @@ class UnbreakableBrick(Brick):
 	def collision(self, ball):
 		# Checks to see if a ball collides with brick
 		x_ball_center, y_ball_center = game.coords(ball.id)
-		x_brick_left, y_brick_top, x_brick_right, y_brick_bottom = self.x,self.y,(self.x + BRICK_WIDTH - 1), (self.y + BRICK_HEIGHT - 1)
+		x_brick_left, y_brick_top, x_brick_right, y_brick_bottom = self.x,self.y,(self.x + BRICK_WIDTH - 1), (self.	y + BRICK_HEIGHT - 1)
 
 		ball_radius = (ball.image).width() / 2
 
 		# Checks if the ball is within the bounds of the brick
-		if (x_brick_left - ball_radius < x_ball_center < x_brick_right + ball_radius) and (y_brick_top - ball_radius < y_ball_center < y_brick_bottom + ball_radius):
+		if (x_brick_left - 1 - ball_radius < x_ball_center < x_brick_right + ball_radius + 1) and (y_brick_top - ball_radius < y_ball_center< y_brick_bottom + ball_radius):
 
 			#Works out the overlap of the ball
 			x_overlap = min(x_ball_center - (x_brick_left - ball_radius), (x_brick_right + ball_radius) - x_ball_center)
 			y_overlap = min(y_ball_center - (y_brick_top - ball_radius), (y_brick_bottom + ball_radius) - y_ball_center)
 
 			#Uses overlap to work out which side of the brick the ball collides with
+			#Don't bother returning anything if a collision is detected on a side where there is already a brick
+			#This only happens when the game thinks a ball collides with two bricks and can cause issues
 			if x_overlap < y_overlap:
-				if x_ball_center < (x_brick_left + x_brick_right) / 2:
+				if x_ball_center < (x_brick_left + x_brick_right) / 2 and not self.has_brick_on_side("left"):
 					return "left"
-				else:
+				elif x_ball_center >= (x_brick_left + x_brick_right) / 2 and not self.has_brick_on_side("right"):
 					return "right"
 			else:
-				if y_ball_center < (y_brick_top + y_brick_bottom) / 2:
+				if y_ball_center < (y_brick_top + y_brick_bottom) / 2 and not self.has_brick_on_side("top"):
 					return "top"
-				else:
+				elif y_ball_center >= (y_brick_top + y_brick_bottom) / 2 and not self.has_brick_on_side("bottom"):
 					return "bottom"
 
 		return None
@@ -179,7 +205,7 @@ class Ball:
 	def __init__(self, ball_id, ball_image):
 		self.id = ball_id
 		self.image = ball_image
-		self.speed = 15
+		self.speed = 9
 		self.x_velocity = 0
 		self.y_velocity = 0
 		self.fired = False
@@ -218,7 +244,7 @@ class Ball:
 		#checks for collisions with walls and updates velocity appropriately
 		if game.coords(ball.id)[0] < (ball.image.width()/2 + 2) or game.coords(ball.id)[0] > (WIDTH - ball.image.width()/2 - 2):
 			self.x_velocity = -self.x_velocity
-		elif game.coords(ball.id)[1] < (ball.image.height()/2):
+		elif game.coords(ball.id)[1] < (ball.image.height()/2 + 2):
 			self.y_velocity = -self.y_velocity
 		elif game.coords(ball.id)[1] > (HEIGHT - ball.image.width()/2 - 2):
 			balls.remove(self)
@@ -226,7 +252,6 @@ class Ball:
 			del self
 
 def update_game():
-
 	if not paused:
 		#Updates the game to move the ball
 		ball.move()
@@ -246,12 +271,12 @@ def update_game():
 			item.wall_collisions(ball)
 			side = paddle.collision(item)
 			if side != None:
-					item.update_velocity(side)
-					ball.move()
-					break
+				item.update_velocity(side)
+				ball.move()
+				break
 		#Update score
 		game.itemconfigure(score_label,text=f"Score: {score}")
-
+		# window.after(30, update_game)
 	return True
 
 def level_one():
@@ -564,7 +589,7 @@ def show_leaderboard(event=None):
 	data = [line.strip().split(',') for line in lines]
 
 	#Sort the items in the data with descending scores
-	ordered_scores = sorted(data, key=lambda x: int(x[1]), reverse=True)
+	ordered_scores = sorted(data, key=lambda x: int(x[1]) if x[1].isdigit() else 0, reverse=True)
 
 	#Create title text for the leaderboard
 	leaderboard.create_text(WIDTH/2, HEIGHT/100, anchor="n", text="Leaderboard:", font=("Courier New", 60, "bold"))
