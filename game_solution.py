@@ -243,7 +243,9 @@ class Ball:
 		if relative_collision_point:
 			#If there is a relative_collision_point (i.e. we are passing in one, as it is a paddle deflecction)
 			if side == "top" or side == "bottom":
-				#Scale the x and y velocity according to that position
+				#Turn the relative_collision_point from 0-1 to an angle from 0-60 relative to normal
+				deflection_angle = 60 * relative_collision_point
+				#Scale the x and y velocity according to that deflection angle
 				self.y_velocity = int(-self.speed * math.cos(math.radians(deflection_angle)))
 				self.x_velocity = int(-self.speed * math.sin(math.radians(deflection_angle)))
 			else:
