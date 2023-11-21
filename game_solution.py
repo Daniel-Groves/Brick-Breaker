@@ -36,19 +36,24 @@ class Paddle:
 				x_overlap = min(x_ball_center - (x_paddle_left - ball_radius), (x_paddle_right + ball_radius) - x_ball_center)
 				y_overlap = min(y_ball_center - (y_paddle_top - ball_radius), (y_paddle_bottom + ball_radius) - y_ball_center)
 
-				#Uses overlap to work out which side of the paddle the ball collides with (should mostly be top)
+				#Uses overlap to work out which side of the paddle the ball collides with (should mostly be top) but check for all incase of edge cases
+				relative_collision_point = None
 				if x_overlap < y_overlap:
-					collision_point = game.coords(ball.id)[0] - game.coords(paddle.id)[0]
-					print(collision_point)
 					if x_ball_center < (x_paddle_left + x_paddle_right) / 2:
-						return "left"
+						return "left", relative_collision_point
 					else:
-						return "right"
+						return "right", relative_collision_point
 				else:
 					if y_ball_center < (y_paddle_top + y_paddle_bottom) / 2:
-						return "top"
+
+						#Work out the relative position of the ball from the center of the paddle from 0-1
+						collision_point = game.coords(ball.id)[0] - game.coords(paddle.id)[0]
+						relative_collision_point = collision_point/((x_paddle_left-x_paddle_right)/2)
+						print(relative_collision_point)
+						return "top", relative_collision_point
 					else:
-						return "bottom"		
+						return "bottom", relative_collision_point
+		return None, None
 	
 	def get_coords(self):
 		return game.coords(self.id)
@@ -233,12 +238,21 @@ class Ball:
 		#Moves the ball according to the current velocities
 		game.move(self.id, self.x_velocity, self.y_velocity)
 
-	def update_velocity(self,side):
+	def update_velocity(self,side,relative_collision_point=None):
 		#Updates the velocity of the ball depending on collisions
-		if side == "top" or side == "bottom":
-			self.y_velocity = -self.y_velocity
+		if relative_collision_point:
+			#If there is a relative_collision_point (i.e. we are passing in one, as it is a paddle deflecction)
+			if side == "top" or side == "bottom":
+				#Scale the x and y velocity according to that position
+				self.y_velocity = int(-self.speed * math.cos(math.radians(deflection_angle)))
+				self.x_velocity = int(-self.speed * math.sin(math.radians(deflection_angle)))
+			else:
+				self.x_velocity = -self.x_velocity
 		else:
-			self.x_velocity = -self.x_velocity
+			if side == "top" or side == "bottom":
+				self.y_velocity = -self.y_velocity
+			else:
+				self.x_velocity = -self.x_velocity
 
 	def wall_collisions(self, ball):
 		#checks for collisions with walls and updates velocity appropriately
@@ -269,9 +283,10 @@ def update_game():
 					ball.move()
 					break
 			item.wall_collisions(ball)
-			side = paddle.collision(item)
+			print
+			side, relative_collision_point = paddle.collision(item)
 			if side != None:
-				item.update_velocity(side)
+				item.update_velocity(side, relative_collision_point)
 				ball.move()
 				break
 		#Update score
