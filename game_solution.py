@@ -1,6 +1,7 @@
 from tkinter import Tk, Canvas, PhotoImage, Label, Button, Entry
 import math
 from PIL import Image, ImageTk
+import sys
 
 
 # Define the class paddle
@@ -639,13 +640,21 @@ def create_settings(event=None):
 	button_width = int(WIDTH/85)
 	button_height = int(HEIGHT/240)
 
-	left_button = Button(settings_menu, text="Left Arrow", command=lambda: wait_for_key_press(event,left_button,"left"), font=("Courier New", 25),background="grey", width=button_width, height=button_height)
+	#Read settings from text file
+	with open("settings.txt", 'r') as file:	
+		# Read each line in the file
+		for line in file:
+			# Split the line into individual settings
+			settings = line.strip().split(',')
+
+	#Place buttons for controls
+	left_button = Button(settings_menu, text=settings[0], command=lambda: wait_for_key_press(event,left_button,"left"), font=("Courier New", 25),background="grey", width=button_width, height=button_height)
 	left_button.place(x=WIDTH/2, y=(2*HEIGHT)/5, anchor="w")
 
-	right_button = Button(settings_menu, text="Right Arrow", command=lambda: wait_for_key_press(event,right_button,"right"), font=("Courier New", 25),background="grey", width=button_width, height=button_height)
+	right_button = Button(settings_menu, text=settings[1], command=lambda: wait_for_key_press(event,right_button,"right"), font=("Courier New", 25),background="grey", width=button_width, height=button_height)
 	right_button.place(x=WIDTH/2, y=(3*HEIGHT)/5, anchor="w")
 
-	fire_button = Button(settings_menu, text="Left Click", command=lambda: wait_for_key_press(event,fire_button,"fire"), font=("Courier New", 25),background="grey", width=button_width, height=button_height)
+	fire_button = Button(settings_menu, text=settings[2], command=lambda: wait_for_key_press(event,fire_button,"fire"), font=("Courier New", 25),background="grey", width=button_width, height=button_height)
 	fire_button.place(x=WIDTH/2, y=(4*HEIGHT)/5, anchor="w")
 
 def settings():
@@ -656,34 +665,59 @@ def settings():
 	settings_menu.pack()
 
 def wait_for_key_press(event,button,action):
+	global settings
 	#Function that waits for a key press to change settings
 	button.config(text="Press a key...")
 
-	#Temporarily bind the pressed key can call capture_key
+	#Temporarily bind the pressed key so it can call capture_key
 	#Note has to manually bind some keys as they don't automatically generate <Key> events
 
 	keys_to_handle = ["<Key>", "<Left>", "<Right>", "<Up>", "<Down>", "<BackSpace>", "<Delete>",
                       "<Return>", "<Shift_L>", "<Shift_R>", "<Control_L>", "<Control_R>",
                       "<Alt_L>", "<Alt_R>"]
+
+	#We need to handle/possibly capture all keys except those already used
+	keys_to_handle = [key for key in keys_to_handle if key not in settings]
 	
+	#Temporarily bind all the keys to capture_key so that we can capture the press
 	for key in keys_to_handle:
 		window.bind(key, lambda event: capture_key(event, button, keys_to_handle, action))
 
 def capture_key(event,button, keys_to_handle, action):
+	print("called")
+	global move_left_control
+	global move_right_control
+	global fire_control
+	global settings
 	#Captures the new key press and binds it to the setting
 	#Unbinds the temporary keys
+	for key in keys_to_handle:
+		window.unbind(key)
 
+	#Store the key press
 	pressed_key = event.keysym
 
-	button.config(text=f"{pressed_key}")
+	#Change the button to show which key has been pressed
+	button.config(text=f"<{pressed_key}>")
 
-	#Depending on the button, rebind the key to the selected one
+	#Depending on the button, rebind the key to the selected one and unbind old control
 	if action == "left":
-		window.bind(pressed_key, lambda event: paddle.move_left(event))
+		window.bind(f"<{pressed_key}>", lambda event: paddle.move_left(event))
+		move_left_control = f"<{pressed_key}>"
+		window.unbind(settings[0])
+		print("set")
 	elif action == "right":
-		window.bind(pressed_key, lambda event: paddle.move_right(event))
+		window.bind(f"<{pressed_key}>", lambda event: paddle.move_right(event))
+		move_right_control = f"<{pressed_key}>"
+		window.unbind(settings[1])
 	elif action == "fire":
-		window.bind(pressed_key, lambda event: ball.fire(event.x,event.y))
+		window.bind(f"<{pressed_key}>", lambda event: ball.fire(event.x,event.y))
+		fire_control = f"<{pressed_key}>"
+		window.unbind(settings[2])
+
+	settings = [move_left_control,move_right_control,fire_control]
+	with open("settings.txt", "w") as file:
+		file.write(','.join(settings))
 
 def save_and_exit():
 	#Will save the name, score and level to a text file called history.txt
@@ -726,7 +760,7 @@ def submit_name(event,name_entered):
 	if name_entered:
 		start.pack_forget()
 		window.unbind("<Return>")
-		window.bind("<Button-1>", lambda event: ball.fire(event.x,event.y))
+		window.bind(fire_control, lambda event: ball.fire(event.x,event.y))
 		level_one()
 
 def load_previous():
@@ -847,7 +881,6 @@ def cheat():
 	paddle.image = big_paddle_image
 	game.itemconfig(paddle.id, image=big_paddle_image)
 
-
 #Initialise window
 window = Tk()
 
@@ -890,6 +923,18 @@ NUMBER_OF_ROWS = 4
 
 score = 0
 saved_score = 0
+
+# Open the file in read mode and save the values in settings
+with open("settings.txt", 'r') as file:	
+	for line in file:
+		# Split the line into individual settings
+		settings = line.strip().split(',')
+		print(settings)
+		move_left_control = settings[0]
+		move_right_control = settings[1]
+		fire_control = settings[2]
+
+        
 
 #Load and resize grey_brick_image
 #Usable under CC license
@@ -936,9 +981,9 @@ teams_screenshot = ImageTk.PhotoImage(teams_screenshot)
 bricks = []
 start_game()
 
-#Bind left and right keys to move paddle
-window.bind("<Left>", lambda event: paddle.move_left(event))
-window.bind("<Right>", lambda event: paddle.move_right(event))
+#Bind the relevant settings from txt file to methods to move the paddle left and right
+window.bind(move_left_control, lambda event: paddle.move_left(event))
+window.bind(move_right_control, lambda event: paddle.move_right(event))
 
 #Bind escape to the pause function
 window.bind("<Escape>", pause)
