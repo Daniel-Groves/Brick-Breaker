@@ -1,7 +1,6 @@
 from tkinter import Tk, Canvas, PhotoImage, Label, Button, Entry
 import math
 from PIL import Image, ImageTk
-import sys
 
 
 # Define the class paddle
@@ -14,13 +13,13 @@ class Paddle:
 
 	#Moves paddle left and right with respective button press
 	def move_left(self,event):
-		if ball.fired:
+		if ball.fired and not paused:
 			game.move(self.id, -self.speed, 0)
 			if game.bbox(self.id)[0] < 0:
 				game.move(self.id, -game.bbox(self.id)[0],0)
 
 	def move_right(self,event):
-		if ball.fired:
+		if ball.fired and not paused:
 			game.move(self.id, self.speed, 0)
 			if game.bbox(self.id)[2] > WIDTH:
 				game.move(self.id, WIDTH-game.bbox(self.id)[2],0)
@@ -220,7 +219,7 @@ class Ball:
 		self.fired = False
 
 	def fire(self,x,y):
-		if not self.fired:
+		if not self.fired and not paused:
 			#Work out the vectors of the click
 
 			x_vector = game.coords(ball.id)[0] - x
