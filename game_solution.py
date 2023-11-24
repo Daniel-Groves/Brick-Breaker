@@ -1,33 +1,62 @@
-from tkinter import Tk, Canvas, PhotoImage, Label, Button, Entry
+#Import necessary libraries and modules
+from tkinter import Tk, Canvas, Label, Button, Entry
 import math
 from PIL import Image, ImageTk
 
 
 # Define the class paddle
 class Paddle:
-	#initialise object
+	""" 
+	Represents a paddle in the game.
+	"""
 	def __init__(self, paddle_id, paddle_image):
+		"""
+        Initializes a new Paddle object.
+
+        Parameters:
+        - paddle_id (int): The identifier for the paddle.
+        - paddle_image (Image): The image representing the paddle.
+        """
 		self.id = paddle_id
 		self.image = paddle_image
 		self.speed = 60
 
 	#Moves paddle left and right with respective button press
 	def move_left(self,event):
+		"""
+        Moves the paddle to the left in response to a button press.
+
+        Parameters:
+        - event: The event triggering the paddle movement.
+        """
 		if ball.fired and not paused:
 			game.move(self.id, -self.speed, 0)
 			if game.bbox(self.id)[0] < 0:
 				game.move(self.id, -game.bbox(self.id)[0],0)
 
 	def move_right(self,event):
+		"""
+        Moves the paddle to the right in response to a button press.
+
+        Parameters:
+        - event: The event triggering the paddle movement.
+        """
 		if ball.fired and not paused:
 			game.move(self.id, self.speed, 0)
 			if game.bbox(self.id)[2] > WIDTH:
 				game.move(self.id, WIDTH-game.bbox(self.id)[2],0)
 
 	def collision(self, ball):
-		# Note this code is very similar to the respective method for bricks, so this should be made more concise in the future
-		# Checks to see if a ball collides with paddle
+		"""
+        Checks if a collision occurs between the paddle and a ball.
 
+        Parameters:
+        - ball: The ball object to check for collision.
+
+        Returns:
+        - tuple: A tuple containing the collision side ('left', 'right', 'top', 'bottom') and
+          the relative collision point (0-1) on the paddle, or (None, None) if no collision.
+        """
 		#Gets ball coordinates, if the ball is still present
 		if game.coords(ball.id):
 			x_ball_center, y_ball_center = game.coords(ball.id)
@@ -35,7 +64,6 @@ class Paddle:
 			ball_radius = (ball.image).width() / 2
 
 			if (x_paddle_left - ball_radius < x_ball_center < x_paddle_right + ball_radius) and (y_paddle_top - ball_radius < y_ball_center < y_paddle_bottom + ball_radius):
-
 				#Works out the overlap of the ball
 				x_overlap = min(x_ball_center - (x_paddle_left - ball_radius), (x_paddle_right + ball_radius) - x_ball_center)
 				y_overlap = min(y_ball_center - (y_paddle_top - ball_radius), (y_paddle_bottom + ball_radius) - y_ball_center)
@@ -59,12 +87,28 @@ class Paddle:
 		return None, None
 	
 	def get_coords(self):
+		"""
+        Returns the coordinates of the paddle.
+
+        Returns:
+        - tuple: A tuple containing the x and y coordinates of the top-left corner of the paddle.
+        """
 		return game.coords(self.id)
 
-#Define the brick class
 class Brick:
-	#initialise object
+	"""
+    Represents a brick in the game.
+	"""
 	def __init__(self, x, y, image, cracked_image):
+		"""
+        Initializes a new Brick object.
+
+        Parameters:
+        - x (int): The x-coordinate of the top-left corner of the brick.
+        - y (int): The y-coordinate of the top-left corner of the brick.
+        - image (Image): The image representing the intact brick.
+        - cracked_image (Image): The image representing the cracked brick.
+        """
 		self.x = x
 		self.y = y
 		self.image = image
@@ -74,8 +118,11 @@ class Brick:
 		self.cracked = False
 
 	def crack(self):
+		"""
+        Turns the brick into a cracked version or breaks it, updating the score and image accordingly.
+        """
 		global score
-		#Turns brick into cracked version or breaks
+
 		if not self.cracked:
 			#If a brick is cracked, add 1 to score
 			game.itemconfig(self.id, image=self.cracked_image)
@@ -90,7 +137,15 @@ class Brick:
 			del self
 			
 	def has_brick_on_side(self, side):
-		# Check if there is a brick on the specified side
+		"""
+        Checks if there is a brick on the specified side of the current brick.
+
+        Parameters:
+        - side (str): The side to check for a neighboring brick ("left", "right", "top", "bottom").
+
+        Returns:
+        - bool: True if there is a brick on the specified side, False otherwise.
+        """
 		x, y = self.x, self.y
 		if side == "left":
 			for brick in bricks:
@@ -111,7 +166,15 @@ class Brick:
 		return False
 
 	def collision(self, ball):
-		# Checks to see if a ball collides with brick
+		"""
+        Checks if a collision occurs between the brick and a ball.
+
+        Parameters:
+        - ball: The ball object to check for collision.
+
+        Returns:
+        - str or None: The collision side ("left", "right", "top", "bottom") or None if no collision.
+        """
 		x_ball_center, y_ball_center = game.coords(ball.id)
 		x_brick_left, y_brick_top, x_brick_right, y_brick_bottom = game.bbox(self.id)
 
@@ -142,7 +205,17 @@ class Brick:
 
 #Child class for grey brick
 class GreyBrick(Brick):
+	"""
+    Represents a grey brick in the game, inheriting from the Brick class.
+	"""
 	def __init__(self, x, y):
+		"""
+        Initializes a new GreyBrick object.
+
+        Parameters:
+        - x (int): The x-coordinate of the top-left corner of the brick.
+        - y (int): The y-coordinate of the top-left corner of the brick.
+        """
 		super().__init__(x, y, grey_brick_image, grey_brick_cracked_image)
 		self.image = grey_brick_image 
 		self.cracked_image = grey_brick_cracked_image
@@ -151,7 +224,17 @@ class GreyBrick(Brick):
 		self.bottom_right = [x+BRICK_WIDTH,y-BRICK_HEIGHT]	
 
 class BlueBrick(Brick):
+	"""
+    Represents a blue brick in the game, inheriting from the Brick class.
+	"""
 	def __init__(self, x, y):
+		"""
+        Initializes a new BlueBrick object.
+
+        Parameters:
+        - x (int): The x-coordinate of the top-left corner of the brick.
+        - y (int): The y-coordinate of the top-left corner of the brick.
+        """
 		super().__init__(x, y, blue_brick_image, blue_brick_cracked_image)
 		self.image = blue_brick_image 
 		self.cracked_image = blue_brick_cracked_image
@@ -160,7 +243,17 @@ class BlueBrick(Brick):
 		self.bottom_right = [x+BRICK_WIDTH,y-BRICK_HEIGHT]
 
 class LightBlueBrick(Brick):
+	"""
+    Represents a light blue brick in the game, inheriting from the Brick class.
+	"""
 	def __init__(self, x, y):
+		"""
+        Initializes a new LightBlueBrick object.
+
+        Parameters:
+        - x (int): The x-coordinate of the top-left corner of the brick.
+        - y (int): The y-coordinate of the top-left corner of the brick.
+        """
 		super().__init__(x, y, light_blue_brick_image, light_blue_brick_cracked_image)
 		self.image = light_blue_brick_image 
 		self.cracked_image = light_blue_brick_cracked_image
@@ -169,48 +262,42 @@ class LightBlueBrick(Brick):
 		self.bottom_right = [x+BRICK_WIDTH,y-BRICK_HEIGHT]
 
 class UnbreakableBrick(Brick):
+	"""
+    Represents an unbreakable brick in the game, inheriting from the Brick class.
+	"""
 	def __init__(self, x, y, color):
-		super().__init__(x, y, None, None)  # No images for unbreakable brick
+		"""
+        Initializes a new UnbreakableBrick object.
+
+        Parameters:
+        - x (int): The x-coordinate of the top-left corner of the brick.
+        - y (int): The y-coordinate of the top-left corner of the brick.
+        - color (str): The color of the unbreakable brick.
+        """
+		super().__init__(x, y, None, None)  # No images for unbreakable brick as shape
 		self.color = color
 		self.id = game.create_rectangle(x, y, x + BRICK_WIDTH - 1, y + BRICK_HEIGHT - 1, fill=color)
 		# Creates coordinates of top left and bottom right for collision detection purposes
 		self.top_left = [x, y]
 		self.bottom_right = [x + BRICK_WIDTH, y - BRICK_HEIGHT]
 	def crack(self):
-		# Unbreakable brick cannot be cracked, so do nothing
+		"""
+        Unbreakable brick cannot be cracked, so this method does nothing. Simply over-rides parent method.
+        """
 		pass
-	def collision(self, ball):
-		# Checks to see if a ball collides with brick
-		x_ball_center, y_ball_center = game.coords(ball.id)
-		x_brick_left, y_brick_top, x_brick_right, y_brick_bottom = self.x,self.y,(self.x + BRICK_WIDTH - 1), (self.	y + BRICK_HEIGHT - 1)
-
-		ball_radius = (ball.image).width() / 2
-
-		# Checks if the ball is within the bounds of the brick
-		if (x_brick_left - 1 - ball_radius < x_ball_center < x_brick_right + ball_radius + 1) and (y_brick_top - ball_radius < y_ball_center< y_brick_bottom + ball_radius):
-
-			#Works out the overlap of the ball
-			x_overlap = min(x_ball_center - (x_brick_left - ball_radius), (x_brick_right + ball_radius) - x_ball_center)
-			y_overlap = min(y_ball_center - (y_brick_top - ball_radius), (y_brick_bottom + ball_radius) - y_ball_center)
-
-			#Uses overlap to work out which side of the brick the ball collides with
-			#Don't bother returning anything if a collision is detected on a side where there is already a brick
-			#This only happens when the game thinks a ball collides with two bricks and can cause issues
-			if x_overlap < y_overlap:
-				if x_ball_center < (x_brick_left + x_brick_right) / 2 and not self.has_brick_on_side("left"):
-					return "left"
-				elif x_ball_center >= (x_brick_left + x_brick_right) / 2 and not self.has_brick_on_side("right"):
-					return "right"
-			else:
-				if y_ball_center < (y_brick_top + y_brick_bottom) / 2 and not self.has_brick_on_side("top"):
-					return "top"
-				elif y_ball_center >= (y_brick_top + y_brick_bottom) / 2 and not self.has_brick_on_side("bottom"):
-					return "bottom"
-
-		return None
 
 class Ball:
+	"""
+	Represents a ball in the game.
+	"""
 	def __init__(self, ball_id, ball_image):
+		"""
+        Initializes a new Ball object.
+
+        Parameters:
+        - ball_id (int): The identifier for the ball object in the game canvas.
+        - ball_image (Image): The image representing the ball.
+        """
 		self.id = ball_id
 		self.image = ball_image
 		self.speed = 9
@@ -219,6 +306,13 @@ class Ball:
 		self.fired = False
 
 	def fire(self,x,y):
+		"""
+        Updates ball's velocities so it is 'fired' when moved.
+
+        Parameters:
+        - x (int): The x-coordinate from which the ball is fired.
+        - y (int): The y-coordinate from which the ball is fired.
+        """
 		if not self.fired and not paused:
 			#Work out the vectors of the click
 
@@ -238,11 +332,19 @@ class Ball:
 			self.y_velocity = self.y_velocity * math.sqrt(scale_factor)
 
 	def move(self):
-		#Moves the ball according to the current velocities
+		"""
+        Moves the ball according to its current velocities.
+        """
 		game.move(self.id, self.x_velocity, self.y_velocity)
 
 	def update_velocity(self,side,relative_collision_point=None):
-		#Updates the velocity of the ball depending on collisions
+		"""
+        Updates the velocity of the ball depending on collisions.
+
+        Parameters:
+        - side (str): The side of the collision ("left", "right", "top", "bottom").
+        - relative_collision_point (float): The relative position of the collision point on the paddle (0-1).
+        """
 		if relative_collision_point:
 			#If there is a relative_collision_point (i.e. we are passing in one, as it is a paddle deflecction)
 			if side == "top" or side == "bottom":
@@ -260,7 +362,12 @@ class Ball:
 				self.x_velocity = -self.x_velocity
 
 	def wall_collisions(self, ball):
-		#checks for collisions with walls and updates velocity appropriately
+		"""
+        Checks for collisions with walls and updates velocity appropriately.
+
+        Parameters:
+        - ball: The ball object to check for collisions.
+        """
 		if game.coords(ball.id)[0] < (ball.image.width()/2 + 2) or game.coords(ball.id)[0] > (WIDTH - ball.image.width()/2 - 2):
 			self.x_velocity = -self.x_velocity
 		elif game.coords(ball.id)[1] < (ball.image.height()/2 + 2):
@@ -271,6 +378,12 @@ class Ball:
 			del self
 
 def update_game():
+	"""
+    Updates the game state.
+
+    Returns:
+    - bool: True if the game is still in progress, False if the game is won or lost.
+    """
 	if not paused:
 		#Updates the game to move the ball
 		ball.move()
@@ -282,30 +395,36 @@ def update_game():
 		for item in balls:
 			for brick in bricks:
 				side = brick.collision(item)
-				if side != None:
+				if side is not None:
 					item.update_velocity(side)
 					brick.crack()
 					ball.move()
 					break
 			item.wall_collisions(ball)
 			side, relative_collision_point = paddle.collision(item)
-			if side != None:
+			if side is not None:
 				item.update_velocity(side, relative_collision_point)
 				ball.move()
 				break
 		#Update score
 		game.itemconfigure(score_label,text=f"Score: {score}")
-		# window.after(30, update_game)
 	return True
 
-def level_one():
-	global balls
-	global ball
-	global score
+def level_one():	
+	"""
+    Sets up and runs Level 1 of the game.
+
+    Creates the game elements, displays the level and score labels, moves the paddle to the correct location,
+    places grey bricks, and runs the game loop until the level is completed or the game is lost.
+
+    Displays appropriate messages and options to proceed based on the outcome of the level.
+
+    Returns:
+    - None
+    """
 	global score_label
 	global level_label
-	global bricks
-	global paddle
+	global bricks	
 	global level
 
 	#Delete anything currently on the canvas so we can replace everything (if game is restarted)
@@ -344,15 +463,16 @@ def level_one():
 		game.itemconfig(paddle.id, state="hidden")
 		game.update_idletasks()
 		#If the level is completed, display appropriate message and option to go to next level
-		finished_label = Label(game, text=f"Congratulations! \n You have completed Level 1", font=("Courier New", 60), bg="black")
+		finished_label = Label(game, text="Congratulations! \n You have completed Level 1", font=("Courier New", 60), bg="black")
 		finished_label.pack()
 		finished_label.place(x=WIDTH/2, y=HEIGHT/2, anchor="center")
 		level_two_button = Button(game, text="Next Level", command= lambda: level_two(finished_label, level_two_button), font=("Courier New", 60),background="grey")
 		level_two_button.pack()
 		level_two_button.place(x=WIDTH/2, y=HEIGHT/2 + 120, anchor="center")
+		
 	else:
 		#If game is lost, display appropriate message and option to play again
-		game_over_label = Label(game, text=f"GAME OVER...", font=("Courier New", 60), bg="black")
+		game_over_label = Label(game, text="GAME OVER...", font=("Courier New", 60), bg="black")
 		game_over_label.pack()
 		game_over_label.place(x=WIDTH/2, y=HEIGHT/2, anchor="center")
 
@@ -361,13 +481,26 @@ def level_one():
 		play_again_button.place(x=WIDTH/2, y=HEIGHT/2 + 120, anchor="center")
 	
 def level_two(finished_label=None, level_two_button=None):
-	#Start level two
-	global balls
-	global ball
-	global score
+	"""
+    Starts and runs Level 2 of the game.
+
+    Destroys labels from the end of Level 1 if they exist, updates the score label,
+    recreates the score and level labels, resets the paddle and ball positions,
+    sets the ball's velocities back to 0, and allows it to be refired.
+    Places unbreakable and blue bricks in specified positions and runs the game loop
+    until the level is completed or the game is lost.
+
+    Displays appropriate messages and options to proceed based on the outcome of the level.
+
+    Parameters:
+    - finished_label: Label displaying the congratulations message for completing the previous level.
+    - level_two_button: Button for transitioning to the next level.
+
+    Returns:
+    - None
+    """
 	global score_label
 	global bricks
-	global paddle
 	global level
 	global level_label
 	global saved_score
@@ -433,32 +566,44 @@ def level_two(finished_label=None, level_two_button=None):
 		game.itemconfig(paddle.id, state="hidden")
 		game.update_idletasks()
 		#If the level is completed, display appropriate message and option to go to next level
-		finished_label = Label(game, text=f"Congratulations! \n You have completed Level 2", font=("Courier New", 60), bg="black")
+		finished_label = Label(game, text="Congratulations! \n You have completed Level 2", font=("Courier New", 60), bg="black")
 		finished_label.pack()
 		finished_label.place(x=WIDTH/2, y=HEIGHT/2, anchor="center")
 		level_three_button = Button(game, text="Next Level", command= lambda: level_three(finished_label, level_three_button), font=("Courier New", 60),background="grey")
 		level_three_button.pack()
 		level_three_button.place(x=WIDTH/2, y=HEIGHT/2 + 120, anchor="center")
 	else:
-		#If game is lost, display
-		#  appropriate message and option to play again
-		game_over_label = Label(game, text=f"GAME OVER...", font=("Courier New", 60), bg="black")
+		#If game is lost, display appropriate message and option to play again
+		game_over_label = Label(game, text="GAME OVER...", font=("Courier New", 60), bg="black")
 		game_over_label.pack()
 		game_over_label.place(x=WIDTH/2, y=HEIGHT/2, anchor="center")
 
 		play_again_button = Button(game, text="Save & Play Again", command= lambda: play_again(game_over_label,play_again_button),font=("Courier New", 60),background="grey")
 		play_again_button.pack()
 		play_again_button.place(x=WIDTH/2, y=HEIGHT/2 + 120, anchor="center")
-	pass
 
 def level_three(finished_label=None, level_three_button=None):
-	#Start level two
-	global balls
-	global ball
-	global score
+	"""
+    Starts and runs Level 3 of the game.
+
+    Destroys labels from the end of Level 2 if they exist, updates the score label,
+    recreates the score and level labels, resets the paddle and ball positions,
+    sets the ball's velocities back to 0, and allows it to be refired.
+    Places unbreakable and light blue bricks in specified positions and runs the game loop
+    until the level is completed or the game is lost.
+
+    Displays appropriate messages, saves the player's progress to a text file if the game is completed,
+    and provides options to proceed based on the outcome of the level.
+
+    Parameters:
+    - finished_label: Label displaying the congratulations message for completing the previous level.
+    - level_three_button: Button for transitioning to the next level.
+
+    Returns:
+    - None
+    """
 	global score_label
 	global bricks
-	global paddle
 	global level
 	global level_label
 	global saved_score
@@ -524,16 +669,15 @@ def level_three(finished_label=None, level_three_button=None):
 		game.itemconfig(paddle.id, state="hidden")
 		game.update_idletasks()
 		#If the level is completed, display appropriate message and option to go to next level
-		finished_label = Label(game, text=f"Congratulations! \n You have completed the game!", font=("Courier New", 60), bg="black")
+		finished_label = Label(game, text="Congratulations! \n You have completed the game!", font=("Courier New", 60), bg="black")
 		finished_label.pack()
 		finished_label.place(x=WIDTH/2, y=HEIGHT/2, anchor="center")
 		#Save the players go to a text file
 		with open('history.txt', 'a') as file:
 			file.write(f'{name},{score},{level},C\n') #Writing C to indicate completed game
-		#Add a completion screen
 	else:
 		#If game is lost, display appropriate message and option to play again
-		game_over_label = Label(game, text=f"GAME OVER...", font=("Courier New", 60), bg="black")
+		game_over_label = Label(game, text="GAME OVER...", font=("Courier New", 60), bg="black")
 		game_over_label.pack()
 		game_over_label.place(x=WIDTH/2, y=HEIGHT/2, anchor="center")
 
@@ -543,7 +687,19 @@ def level_three(finished_label=None, level_three_button=None):
 	pass
 
 def play_again(game_over_label,play_again_button):
+	"""
+    Restarts the game when the player chooses to play again after a game over.
 
+    Saves the player's progress to a text file, resets the score to 0, and destroys the
+    labels and buttons from the game over screen. Initiates the start of Level 1.
+
+    Parameters:
+    - game_over_label: Label displaying the game over message.
+    - play_again_button: Button for restarting the game.
+
+    Returns:
+    - None
+    """
 	global score
 	#Save the players go to a text file
 	with open('history.txt', 'a') as file:
@@ -559,8 +715,17 @@ def play_again(game_over_label,play_again_button):
 	level_one()
 
 def create_pause_menu():
-	#Place the buttons for the pause menu
+	"""
+    Places buttons for the pause menu, including Resume, Leaderboard, Settings, and Save and Exit.
 
+    Each button is configured with specific commands and formatting.
+
+    Parameters:
+    - None
+
+    Returns:
+    - None
+    """
 	button_width = int(WIDTH/85)
 	button_height = int(HEIGHT/720)		
 
@@ -577,7 +742,18 @@ def create_pause_menu():
 	save_and_exit_button.place(x=WIDTH/2, y=(4*HEIGHT)/5, anchor="center")
 
 def pause(event=None):
-	#When called will remove the game from the window and show the pause menu
+	"""
+    Pauses the game by hiding the game canvas and displaying the pause menu.
+
+    Sets the global variable 'paused' to True, hides the game canvas, and displays
+    the pause menu. Also updates the key binding to allow unpausing with the Escape key.
+
+    Parameters:
+    - event (optional): The event triggering the pause (e.g., a keypress).
+
+    Returns:
+    - None
+    """
 	global paused
 
 	paused = True
@@ -587,7 +763,18 @@ def pause(event=None):
 	window.bind("<Escape>", unpause)
 
 def unpause(event="None"):
-	#When called will remove the pause menu from the window and show the game
+	"""
+    Unpauses the game by hiding the pause menu and displaying the game canvas.
+
+    Sets the global variable 'paused' to False, hides the pause menu, and displays
+    the game canvas. Also updates the key binding to allow pausing with the Escape key.
+
+    Parameters:
+    - event (optional): The event triggering the unpause (e.g., a keypress).
+
+    Returns:
+    - None
+    """
 	global paused
 	paused = False
 	pause_menu.pack_forget()
@@ -599,6 +786,15 @@ def unpause(event="None"):
 	pass
 
 def show_leaderboard(event=None):
+	"""
+    Displays the leaderboard by reading data from the history file and showing the top ten scores.
+
+    Parameters:
+    - event (optional): The event triggering the display of the leaderboard (e.g., a keypress).
+
+    Returns:
+    - None
+    """
 	window.bind("<Escape>", unpause)
 	#When called will remove what is currently showing, and show the leaderboard
 	#Read from history file
@@ -617,7 +813,6 @@ def show_leaderboard(event=None):
 	leaderboard.pack()
 
 	#Create column text
-	header_text = "{:<9} {:<10} {:<6}".format("RANK", "NAME", "SCORE")
 	leaderboard.create_text(WIDTH/4, (0.9*HEIGHT)/8, anchor="n", text="RANK", font=("Courier New", 50, "bold"))
 	leaderboard.create_text((2*WIDTH)/4, (0.9*HEIGHT)/8, anchor="n", text="NAME", font=("Courier New", 50, "bold"))
 	leaderboard.create_text((3*WIDTH)/4, (0.9*HEIGHT)/8, anchor="n", text="SCORE", font=("Courier New", 50, "bold"))
@@ -630,7 +825,15 @@ def show_leaderboard(event=None):
 		leaderboard.create_text((3*WIDTH)/4, y_position, anchor="n", text=score, font=("Courier New", 40))
 
 def create_settings(event=None):
-	#Creates the text and buttons that sit on the settings canvas
+	"""
+    Creates the text and buttons that sit on the settings canvas, allowing the player to customize control settings.
+
+    Parameters:
+    - event (optional): The event triggering the creation of settings (e.g., a keypress).
+
+    Returns:
+    - None
+    """
 	settings_text = settings_menu.create_text(WIDTH/2, HEIGHT/5, text="Settings", font=("Courier New", 60, "bold"), fill="white", anchor="center")
 	left_text = settings_menu.create_text(WIDTH/3.5, (2*HEIGHT)/5, text="Move Left", font=("Courier New", 25), fill="white", anchor="w")
 	right_text = settings_menu.create_text(WIDTH/3.5, (3*HEIGHT)/5, text="Move Right", font=("Courier New", 25), fill="white", anchor="w")
@@ -657,15 +860,29 @@ def create_settings(event=None):
 	fire_button.place(x=WIDTH/2, y=(4*HEIGHT)/5, anchor="w")
 
 def settings():
-	#Will take user to settings page when called
+	"""
+    Activates the settings menu in the game.
+
+    Returns:
+    None
+    """
 	window.bind("<Escape>", unpause)
 
 	pause_menu.pack_forget()
 	settings_menu.pack()
 
-def wait_for_key_press(event,button,action):
-	global settings
-	#Function that waits for a key press to change settings
+def wait_for_key_press(event,button,action):	
+	"""
+    Waits for a key press to change settings.
+
+    Parameters:
+    - event: The event triggering the key press.
+    - button: The button associated with the action.
+    - action: The action to be performed on key press.
+
+    Returns:
+    - None
+    """
 	button.config(text="Press a key...")
 
 	#Temporarily bind the pressed key so it can call capture_key
@@ -683,13 +900,24 @@ def wait_for_key_press(event,button,action):
 		window.bind(key, lambda event: capture_key(event, button, keys_to_handle, action))
 
 def capture_key(event,button, keys_to_handle, action):
-	print("called")
+	"""
+    Captures the new key press and binds it to the setting.
+    Unbinds the temporary keys.
+
+    Parameters:
+    - event: The event triggering the key press.
+    - button: The button associated with the action.
+    - keys_to_handle: List of keys to be temporarily handled.
+    - action: The action to be performed on key press.
+
+    Returns:
+    - None
+    """
 	global move_left_control
 	global move_right_control
 	global fire_control
 	global settings
-	#Captures the new key press and binds it to the setting
-	#Unbinds the temporary keys
+
 	for key in keys_to_handle:
 		window.unbind(key)
 
@@ -719,8 +947,12 @@ def capture_key(event,button, keys_to_handle, action):
 		file.write(','.join(settings))
 
 def save_and_exit():
-	#Will save the name, score and level to a text file called history.txt
+	"""
+    Saves the name, score, level and completion status to a text file called history.txt.
 
+    Returns:
+    - None
+    """
 	# Open the file in append mode and write the data
 	with open('history.txt', 'a') as file:
 		file.write(f'{name},{saved_score},{level},S\n') #Writing S to indicate saved game
@@ -728,8 +960,15 @@ def save_and_exit():
 
 	#Close window
 	window.destroy()
+	window.quit()
 
 def start_game():
+	"""
+    Displays the start menu, prompting the user to enter their name and choose whether to start a new game or load a previous one.
+
+    Returns:
+    - None
+    """
 	window.bind("<Return>", lambda event: submit_name(event, name_entry.get()))
 	enter_text = start.create_text(WIDTH/2, HEIGHT/4, text="Enter your name:", font=("Courier New", 50, "bold"), fill="white", anchor="center")
 	# submit_text = start.create_text(WIDTH/2, (2*HEIGHT)/4, text="Press Enter to Submit...", font=("Courier New", 50), fill="white", anchor="center")
@@ -752,6 +991,16 @@ def start_game():
 	load_game_button.place(x = WIDTH/2,y = (2.5*HEIGHT)/4, anchor="n")
 
 def submit_name(event,name_entered):
+	"""
+    Submits the entered name for the game and initiates the game if a name is provided.
+
+    Args:
+    - event: The event triggering the submission (ignored).
+    - name_entered (str): The entered name.
+
+    Returns:
+    - None
+    """
 	global name
 	name = name_entered
 
@@ -763,6 +1012,13 @@ def submit_name(event,name_entered):
 		level_one()
 
 def load_previous():
+	"""
+    Loads the most recent incomplete game from the history file, if available, and starts the game at the correct level.
+    Displays a message if there is no game to load.
+
+    Returns:
+    - None
+    """
 	global score
 	global name
 
@@ -803,6 +1059,16 @@ def load_previous():
 			level = 3
 	
 def create_elements():
+	"""
+    Creates and initializes the paddle and ball elements for the game. 
+    Loads paddle and ball images, resizes them, and creates corresponding objects.
+
+    Returns:
+    - ball_id (int): The ID of the ball element on the canvas.
+    - paddle_id (int): The ID of the paddle element on the canvas.
+    - paddle_image (ImageTk.PhotoImage): The resized paddle image.
+    - ball_image (ImageTk.PhotoImage): The resized ball image.
+    """
 	global ball
 	global paddle
 	#Load paddle image and resize using PIL
@@ -826,6 +1092,15 @@ def create_elements():
 	return ball_id, paddle_id, paddle_image, ball_image
 
 def boss_button(event=None):
+	"""
+    Displays the boss screen and activates the pause menu in the background.
+
+    Parameters:
+    - event (tk.Event, optional): The event triggering the function. Defaults to None.
+
+	Returns:
+    None
+    """
 	#When the boss button is pressed we show the boss screen
 	#We also activate the pause menu in the background
 	if not paused:
@@ -842,15 +1117,33 @@ def boss_button(event=None):
 	window.bind("<Control-b>", end_boss_button)
 
 def end_boss_button(event=None):
+	"""
+    Ends the boss screen and returns the user to the pause menu.
+
+    Parameters:
+    - event: (tk.Event, optional) An optional tkinter event that might be passed when the function is triggered.
+
+    Returns:
+    None
+    """
 	#If the boss button is called again, we end it and take the user to the pause menu
 	window.bind("<Control-b>", boss_button)
 	boss_screen.pack_forget()
 	pause_menu.pack()
 
 def cheat_code_check(event):
+	"""
+    Checks for cheat codes based on a sequence of pressed keys and calls the cheat function with corresponding cheat code.
+
+    Parameters:
+    - event: (tk.Event) The tkinter event representing a key press.
+
+    Returns:
+    None
+    """
 	global cheat_sequence
     # Check if the pressed keys match the desired sequence
-	if event.keysym == "1":  # state 0 means no modifiers (Shift, Ctrl, Alt)
+	if event.keysym == "1":
 		cheat_sequence.append("1")
 	elif event.keysym == "2":
 		cheat_sequence.append("2")
@@ -863,22 +1156,36 @@ def cheat_code_check(event):
 
     # Check if the current sequence matches the cheat sequence
 	if "1234" in "".join(cheat_sequence):
-		cheat()
+		cheat("paddle_extension")
+		cheat_sequence = []
+	elif "4321" in "".join(cheat_sequence):
+		cheat("paddle_speed")
 		cheat_sequence = []
 
-def cheat():
-	global paddle
-	# original_coords = paddle.get_coords()
+def cheat(cheat_type):
+	"""
+    Activates a cheat in the game based on the specified cheat type.
 
-	#Load paddle image and resize using PIL to larger than normal
-	#Usable under CC license
-	big_paddle_image = Image.open("paddle.png")
-	big_paddle_image = big_paddle_image.resize((254, 41))
-	big_paddle_image = ImageTk.PhotoImage(big_paddle_image)
+    Parameters:
+    - cheat_type: (str) The type of cheat to activate. Possible values:
+        - "paddle_extension": Extends the size of the paddle.
+        - "paddle_speed": Increases the speed of the paddle.
 
-	#Change the size of the paddle
-	paddle.image = big_paddle_image
-	game.itemconfig(paddle.id, image=big_paddle_image)
+    Returns:
+    None
+    """
+	if cheat_type == "paddle_extension":
+		#Load paddle image and resize using PIL to larger than normal
+		#Usable under CC license
+		big_paddle_image = Image.open("paddle.png")
+		big_paddle_image = big_paddle_image.resize((254, 41))
+		big_paddle_image = ImageTk.PhotoImage(big_paddle_image)
+
+		#Change the size of the paddle
+		paddle.image = big_paddle_image
+		game.itemconfig(paddle.id, image=big_paddle_image)
+	elif cheat_type == "paddle_speed":
+		paddle.speed = 100
 
 #Initialise window
 window = Tk()
