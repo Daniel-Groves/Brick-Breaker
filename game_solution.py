@@ -932,7 +932,6 @@ def capture_key(event,button, keys_to_handle, action):
 		window.bind(f"<{pressed_key}>", lambda event: paddle.move_left(event))
 		move_left_control = f"<{pressed_key}>"
 		window.unbind(settings[0])
-		print("set")
 	elif action == "right":
 		window.bind(f"<{pressed_key}>", lambda event: paddle.move_right(event))
 		move_right_control = f"<{pressed_key}>"
@@ -1235,7 +1234,6 @@ with open("settings.txt", 'r') as file:
 	for line in file:
 		# Split the line into individual settings
 		settings = line.strip().split(',')
-		print(settings)
 		move_left_control = settings[0]
 		move_right_control = settings[1]
 		fire_control = settings[2]
